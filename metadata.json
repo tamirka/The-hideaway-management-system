@@ -1,0 +1,5 @@
+{
+  "name": "The Hideaway: Hostel Management",
+  "description": "An internal hostel management system for tracking property and assets. Manage room statuses, maintenance needs, and keep an inventory of furniture, appliances, and equipment with warranty and supplier details.",
+  "requestFramePermissions": []
+}
