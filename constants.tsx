@@ -1,4 +1,3 @@
-// Fix: Populating the constants file with SVG icon components used in other components.
 import React from 'react';
 
 const iconProps = {
@@ -50,5 +49,50 @@ export const EyeIcon: React.FC<{className?: string}> = ({ className }) => (
     <svg {...iconProps} className={className || iconProps.className}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+);
+
+export const CurrencyDollarIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 11.21 12.77 11 12 11c-.77 0-1.536.21-2.121.659L9 12.25m6-3.25l-2.121.659-2.121-.659m0 0l2.121-.659 2.121.659M9 12.25l2.121.659 2.121.659M15 12.25l-2.121.659-2.121-.659" />
+    </svg>
+);
+
+export const CalendarDaysIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18" />
+    </svg>
+);
+
+export const ChartPieIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5a10.5 10.5 0 1010.5 10.5A10.51 10.51 0 0012 1.5z" />
+    </svg>
+);
+
+export const TagIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || iconProps.className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+    </svg>
+);
+
+export const CashRegisterIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5z" />
+    </svg>
+);
+
+export const GlobeAltIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c-4.805 0-8.716-3.91-8.716-8.716C3.284 7.485 7.195 3.575 12 3.575c4.805 0 8.716 3.91 8.716 8.716 0 4.806-3.91 8.716-8.716 8.716zM12 3.575v17.45m0-17.45a9.004 9.004 0 00-8.716 6.747M12 3.575a9.004 9.004 0 018.716 6.747" />
+    </svg>
+);
+
+export const ReceiptPercentIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m2.25-9h.01M7.5 15h3m-3 0h-1.5m-1.5 0h5.25m0 0h1.5m-5.25 0h-3m-1.5-9H5.25m0 0h1.5M5.25 6H7.5M5.25 6H3M7.5 6H5.25m6.75 0h1.5m-1.5 0h-3m1.5 0h-1.5m-1.5 0H9M12 6h3.75m-3.75 0h-1.5m-1.5 0h-3.75" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l6-6m-6 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm6-6a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
     </svg>
 );

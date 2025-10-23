@@ -302,6 +302,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
     const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null);
     const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
     const [editingAdvance, setEditingAdvance] = useState<SalaryAdvance | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
     
@@ -319,6 +320,24 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
             return acc;
         }, {} as Record<string, Shift[]>);
     }, [shifts]);
+
+    const filteredAbsences = useMemo(() => {
+        if (!selectedMonth) return absences;
+        return absences.filter(a => a.date.startsWith(selectedMonth));
+    }, [absences, selectedMonth]);
+
+    const absenceSummary = useMemo(() => {
+        const summary = staff.map(s => {
+            const count = filteredAbsences.filter(a => a.staffId === s.id).length;
+            return {
+                staffId: s.id,
+                staffName: s.name,
+                absenceCount: count,
+            };
+        });
+        return summary.filter(s => s.absenceCount > 0).sort((a, b) => b.absenceCount - a.absenceCount);
+    }, [staff, filteredAbsences]);
+
 
     // Handlers for Staff Modal
     const handleOpenStaffModal = (staffMember?: Staff) => {
@@ -534,15 +553,48 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
 
             {activeTab === 'absences' && (
                 <div>
-                    <div className="flex justify-end mb-4">
+                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between mb-6">
+                        <div>
+                            <label htmlFor="month-filter-absences" className="text-sm font-medium text-slate-600">Filter by Month:</label>
+                            <input 
+                                type="month" 
+                                id="month-filter-absences"
+                                value={selectedMonth}
+                                onChange={e => setSelectedMonth(e.target.value)}
+                                className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                            />
+                        </div>
                         <button onClick={() => handleOpenAbsenceModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
                            <PlusIcon className="w-5 h-5 mr-2" /> Record Absence
                         </button>
                     </div>
 
+                    {absenceSummary.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-md overflow-x-auto mb-6">
+                             <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Monthly Absence Summary - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                            <table className="w-full text-sm text-left text-slate-500">
+                                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                    <tr>
+                                        <th className="px-6 py-3">Employee</th>
+                                        <th className="px-6 py-3">Total Absences This Month</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {absenceSummary.map(summary => (
+                                        <tr key={summary.staffId} className="bg-white border-b hover:bg-slate-50">
+                                            <td className="px-6 py-4 font-medium text-slate-900">{summary.staffName}</td>
+                                            <td className="px-6 py-4">{summary.absenceCount}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+
                     {/* Mobile Card View */}
                     <div className="md:hidden space-y-4">
-                        {absences.map(a => (
+                        {filteredAbsences.map(a => (
                             <div key={a.id} className="bg-white rounded-lg shadow-md p-4 space-y-2">
                                 <div className="flex justify-between items-start">
                                     <div>
@@ -575,7 +627,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {absences.map(a => (
+                                {filteredAbsences.map(a => (
                                     <tr key={a.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900">{staffMap.get(a.staffId) || 'Unknown Staff'}</td>
                                         <td className="px-6 py-4">{a.date}</td>

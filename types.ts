@@ -136,6 +136,7 @@ export interface Booking {
   staffId: string;
   bookingDate: string; // YYYY-MM-DD
   customerPrice: number;
+  numberOfPeople: number;
   employeeCommission: number;
   hostelCommission: number;
   discount?: number;
@@ -145,4 +146,19 @@ export interface Booking {
   receiptImage?: string; // base64 encoded image
   fuelCost?: number;
   captainCost?: number;
+}
+
+export interface ExternalSale {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  description?: string;
+}
+
+export interface PlatformPayment {
+  id: string;
+  date: string; // YYYY-MM-DD
+  platform: string;
+  amount: number;
+  bookingReference?: string;
 }

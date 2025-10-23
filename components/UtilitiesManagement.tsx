@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { UtilityRecord } from '../types';
 import Modal from './Modal';
 import SimpleBarChart from './SimpleBarChart';
-import { PlusIcon, EditIcon, TrashIcon, UtilityIcon, EyeIcon } from '../constants';
+import { PlusIcon, EditIcon, TrashIcon, UtilityIcon, EyeIcon, CurrencyDollarIcon, CalendarDaysIcon, ChartPieIcon } from '../constants';
 
 // --- Form ---
 interface UtilityFormProps {
@@ -151,6 +151,18 @@ const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialDat
   )
 }
 
+const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; }> = ({ title, value, icon }) => (
+    <div className="bg-white p-5 rounded-lg shadow-sm flex items-center space-x-4">
+        <div className="bg-blue-100 text-blue-600 rounded-full p-3">
+            {icon}
+        </div>
+        <div>
+            <h4 className="text-sm font-medium text-slate-500 truncate">{title}</h4>
+            <p className="text-2xl font-semibold text-slate-800 mt-1">{value}</p>
+        </div>
+    </div>
+);
+
 
 // --- Main Component ---
 interface UtilitiesManagementProps {
@@ -164,6 +176,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<UtilityRecord | null>(null);
     const [viewingBill, setViewingBill] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     const handleOpenModal = (record?: UtilityRecord) => {
         setEditingRecord(record || null);
@@ -179,31 +192,108 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         }
     };
     
-    const chartData = useMemo(() => {
-        const monthlyCosts = records.reduce((acc, record) => {
-            const month = new Date(record.date + 'T00:00:00').toLocaleString('default', { month: 'short' });
-            acc[month] = (acc[month] || 0) + record.cost;
+    const filteredRecords = useMemo(() => {
+        if (!selectedMonth) return records;
+        return records.filter(r => r.date.startsWith(selectedMonth));
+    }, [records, selectedMonth]);
+
+    const analyticsData = useMemo(() => {
+        const totalExpenses = filteredRecords.reduce((sum, r) => sum + r.cost, 0);
+
+        const dailyTotals = filteredRecords.reduce((acc, r) => {
+            const day = r.date.split('-')[2];
+            acc[day] = (acc[day] || 0) + r.cost;
             return acc;
         }, {} as Record<string, number>);
 
-        return Object.entries(monthlyCosts).map(([label, value]) => ({ label, value })).sort((a, b) => new Date(a.label + ' 1, 2000').getTime() - new Date(b.label + ' 1, 2000').getTime());
-    }, [records]);
+        const categoryTotals = filteredRecords.reduce((acc, r) => {
+            acc[r.utilityType] = (acc[r.utilityType] || 0) + r.cost;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const dailyChartData = Object.entries(dailyTotals).map(([day, total]) => ({
+            label: day,
+            value: total
+        })).sort((a, b) => parseInt(a.label) - parseInt(b.label));
+
+        const categoryChartData = Object.entries(categoryTotals).map(([category, total]) => ({
+            label: category,
+            value: total
+// Fix: Explicitly cast values to Number to prevent TypeScript errors in the sort callback.
+        })).sort((a, b) => Number(b.value) - Number(a.value));
+
+        const topCategory = categoryChartData[0] ? `${categoryChartData[0].label}` : 'N/A';
+        
+        // Fix: Use explicit array index access in the sort callback to avoid type inference issues.
+// Fix: Explicitly cast values to Number to prevent TypeScript errors in the sort callback.
+        const highestDayEntry = Object.entries(dailyTotals).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+        const highestDay = highestDayEntry ? `${selectedMonth}-${String(highestDayEntry[0]).padStart(2, '0')}` : 'N/A';
+
+
+        return { totalExpenses, dailyChartData, categoryChartData, topCategory, highestDay };
+    }, [filteredRecords, selectedMonth]);
+
+    const currencyFormat = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     return (
-        <div>
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Utilities Tracking</h1>
-                <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
+                <button onClick={() => handleOpenModal()} className="mt-4 sm:mt-0 flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
                     <PlusIcon className="w-5 h-5 mr-2" />
                     Add Record
                 </button>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <SimpleBarChart data={chartData} title="Monthly Utility Costs" color="#3b82f6" />
+            {/* Analytics Dashboard */}
+            <div className="space-y-6">
+                <div className="bg-white p-4 rounded-lg shadow-sm flex items-center">
+                    <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Filter by Month:</label>
+                    <input 
+                        type="month" 
+                        id="month-filter"
+                        value={selectedMonth}
+                        onChange={e => setSelectedMonth(e.target.value)}
+                        className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <SummaryCard title="Total Expenses" value={currencyFormat(analyticsData.totalExpenses)} icon={<CurrencyDollarIcon />} />
+                    <SummaryCard title="Highest Spending Day" value={analyticsData.highestDay} icon={<CalendarDaysIcon />} />
+                    <SummaryCard title="Top Category" value={analyticsData.topCategory} icon={<ChartPieIcon />} />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <SimpleBarChart data={analyticsData.dailyChartData} title={`Daily Expenses for ${new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}`} color="#3b82f6" />
+                    </div>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                         <h3 className="text-center font-semibold text-slate-600 mb-2">Expenses by Category</h3>
+                         <div className="overflow-y-auto max-h-72">
+                            <table className="w-full text-sm text-left">
+                                <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
+                                    <tr>
+                                        <th className="px-4 py-2">Category</th>
+                                        <th className="px-4 py-2 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {analyticsData.categoryChartData.map(cat => (
+                                        <tr key={cat.label} className="border-b">
+                                            <td className="px-4 py-2 font-medium text-slate-800">{cat.label}</td>
+                                            <td className="px-4 py-2 text-right">{currencyFormat(cat.value)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                         </div>
+                    </div>
+                </div>
             </div>
 
             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Expense Records for {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>
@@ -215,14 +305,14 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                         </tr>
                     </thead>
                     <tbody>
-                        {records.map((record) => (
+                        {filteredRecords.map((record) => (
                         <tr key={record.id} className="bg-white border-b hover:bg-slate-50">
                             <td className="px-6 py-4 font-medium text-slate-900 flex items-center">
                                 <UtilityIcon className="w-4 h-4 mr-2 text-slate-400" />
                                 {record.utilityType}
                             </td>
                             <td className="px-6 py-4">{record.date}</td>
-                            <td className="px-6 py-4">${record.cost.toFixed(2)}</td>
+                            <td className="px-6 py-4">{currencyFormat(record.cost)}</td>
                             <td className="px-6 py-4">
                                 {record.billImage ? (
                                     <button onClick={() => setViewingBill(record.billImage)} className="text-blue-600 hover:text-blue-800 flex items-center text-sm font-medium">

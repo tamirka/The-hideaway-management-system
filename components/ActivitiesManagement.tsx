@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, PaymentMethod, TaxiBoatOption } from '../types';
+import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, PaymentMethod, TaxiBoatOption, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance } from '../types';
 import { Role } from '../types';
 import Modal from './Modal';
-import { EyeIcon } from '../constants';
+import { EyeIcon, EditIcon, PlusIcon, TrashIcon, CashRegisterIcon, GlobeAltIcon, ReceiptPercentIcon } from '../constants';
 
 
 // --- SVG Icons for UI Enhancement ---
@@ -14,7 +13,7 @@ const TicketIcon: React.FC<{className?: string}> = ({ className }) => (
 );
 const CurrencyDollarIcon: React.FC<{className?: string}> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 11.21 12.77 11 12 11c-.77 0-1.536.21-2.121.659L9 12.25m6-3.25l-2.121.659-2.121-.659m0 0l2.121-.659 2.121.659M9 12.25l2.121.659 2.121-.659M15 12.25l-2.121.659-2.121-.659" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 11.21 12.77 11 12 11c-.77 0-1.536.21-2.121.659L9 12.25m6-3.25l-2.121.659-2.121-.659m0 0l2.121-.659 2.121.659M9 12.25l2.121.659 2.121.659M15 12.25l-2.121.659-2.121-.659" />
     </svg>
 );
 const UserGroupIcon: React.FC<{className?: string}> = ({ className }) => (
@@ -89,12 +88,23 @@ interface ActivitiesManagementProps {
   taxiBoatOptions: TaxiBoatOption[];
   staff: Staff[];
   bookings: Booking[];
-  onBookActivity: (activityId: string, staffId: string, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
-  onBookSpeedBoat: (tripId: string, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookExternalActivity: (activityId: string, staffId: string, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
+  externalSales: ExternalSale[];
+  platformPayments: PlatformPayment[];
+  utilityRecords: UtilityRecord[];
+  salaryAdvances: SalaryAdvance[];
+  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
+  onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
+  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string) => void;
+  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
   onBookStandaloneExtra: (extra: Extra, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookTaxiBoat: (taxiOptionId: string, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
+  onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
+  onUpdateBooking: (updatedBooking: Booking) => void;
+  onAddExternalSale: (newSale: Omit<ExternalSale, 'id'>) => void;
+  onUpdateExternalSale: (updatedSale: ExternalSale) => void;
+  onDeleteExternalSale: (saleId: string) => void;
+  onAddPlatformPayment: (newPayment: Omit<PlatformPayment, 'id'>) => void;
+  onUpdatePlatformPayment: (updatedPayment: PlatformPayment) => void;
+  onDeletePlatformPayment: (paymentId: string) => void;
   currentUserRole: Role;
 }
 
@@ -109,6 +119,182 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
         </div>
     </div>
 );
+
+// Form for editing booking commissions
+interface EditBookingFormProps {
+    booking: Booking;
+    onSave: (updatedBooking: Booking) => void;
+    onClose: () => void;
+}
+
+const EditBookingForm: React.FC<EditBookingFormProps> = ({ booking, onSave, onClose }) => {
+    const [employeeCommission, setEmployeeCommission] = useState(booking.employeeCommission.toString());
+    const [hostelCommission, setHostelCommission] = useState(booking.hostelCommission.toString());
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({
+            ...booking,
+            employeeCommission: Number(employeeCommission) || 0,
+            hostelCommission: Number(hostelCommission) || 0,
+        });
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
+                <input 
+                    type="number" 
+                    id="employeeCommission" 
+                    value={employeeCommission} 
+                    onChange={(e) => setEmployeeCommission(e.target.value)} 
+                    className="mt-1 block w-full input-field" 
+                />
+            </div>
+            <div>
+                <label htmlFor="hostelCommission" className="block text-sm font-medium text-slate-700">Hostel Commission (THB)</label>
+                <input 
+                    type="number" 
+                    id="hostelCommission" 
+                    value={hostelCommission} 
+                    onChange={(e) => setHostelCommission(e.target.value)} 
+                    className="mt-1 block w-full input-field" 
+                />
+            </div>
+             <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+            </div>
+        </form>
+    );
+};
+
+// Form for adding/editing external POS sales
+interface ExternalSaleFormProps {
+    onSave: (sale: Omit<ExternalSale, 'id'> | ExternalSale) => void;
+    onClose: () => void;
+    initialData?: ExternalSale | null;
+}
+
+const ExternalSaleForm: React.FC<ExternalSaleFormProps> = ({ onSave, onClose, initialData }) => {
+    const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+    const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+    const [description, setDescription] = useState(initialData?.description || '');
+    
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const saleData = {
+            date,
+            amount: Number(amount) || 0,
+            description
+        };
+        if (initialData) {
+            onSave({ ...initialData, ...saleData });
+        } else {
+            onSave(saleData);
+        }
+        onClose();
+    };
+
+    return (
+         <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="saleDate" className="block text-sm font-medium text-slate-700">Date</label>
+                <input type="date" id="saleDate" value={date} onChange={(e) => setDate(e.target.value)} required className="mt-1 block w-full input-field" />
+            </div>
+            <div>
+                <label htmlFor="saleAmount" className="block text-sm font-medium text-slate-700">Total Amount (THB)</label>
+                <input type="number" id="saleAmount" value={amount} onChange={(e) => setAmount(e.target.value)} required className="mt-1 block w-full input-field" />
+            </div>
+            <div>
+                <label htmlFor="saleDescription" className="block text-sm font-medium text-slate-700">Description (Optional)</label>
+                <textarea id="saleDescription" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 block w-full input-field" />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Save Changes' : 'Add Sale'}</button>
+            </div>
+        </form>
+    );
+};
+
+// Form for adding/editing platform payments
+interface PlatformPaymentFormProps {
+    onSave: (payment: Omit<PlatformPayment, 'id'> | PlatformPayment) => void;
+    onClose: () => void;
+    initialData?: PlatformPayment | null;
+}
+
+const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClose, initialData }) => {
+    const PLATFORMS = ['Booking.com', 'Hostelworld', 'Agoda'];
+    const initialPlatform = initialData?.platform && !PLATFORMS.includes(initialData.platform) ? 'Other' : initialData?.platform || '';
+
+    const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+    const [platform, setPlatform] = useState(initialPlatform);
+    const [otherPlatform, setOtherPlatform] = useState(initialData?.platform && !PLATFORMS.includes(initialData.platform) ? initialData.platform : '');
+    const [amount, setAmount] = useState(initialData?.amount.toString() || '');
+    const [bookingReference, setBookingReference] = useState(initialData?.bookingReference || '');
+    
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const finalPlatform = platform === 'Other' ? otherPlatform : platform;
+        if (!finalPlatform) {
+            alert('Please select or specify a platform.');
+            return;
+        }
+
+        const paymentData = {
+            date,
+            platform: finalPlatform,
+            amount: Number(amount) || 0,
+            bookingReference
+        };
+        if (initialData) {
+            onSave({ ...initialData, ...paymentData });
+        } else {
+            onSave(paymentData);
+        }
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="paymentDate" className="block text-sm font-medium text-slate-700">Date</label>
+                <input type="date" id="paymentDate" value={date} onChange={(e) => setDate(e.target.value)} required className="mt-1 block w-full input-field" />
+            </div>
+            <div>
+                <label htmlFor="platform" className="block text-sm font-medium text-slate-700">Platform</label>
+                <select id="platform" value={platform} onChange={(e) => setPlatform(e.target.value)} required className="mt-1 block w-full input-field">
+                    <option value="">Select a platform...</option>
+                    {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            {platform === 'Other' && (
+                <div>
+                    <label htmlFor="otherPlatform" className="block text-sm font-medium text-slate-700">Specify Platform Name</label>
+                    <input type="text" id="otherPlatform" value={otherPlatform} onChange={(e) => setOtherPlatform(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
+            )}
+            <div>
+                <label htmlFor="paymentAmount" className="block text-sm font-medium text-slate-700">Total Amount (THB)</label>
+                <input type="number" id="paymentAmount" value={amount} onChange={(e) => setAmount(e.target.value)} required className="mt-1 block w-full input-field" />
+            </div>
+            <div>
+                <label htmlFor="bookingReference" className="block text-sm font-medium text-slate-700">Booking Reference (Optional)</label>
+                <input type="text" id="bookingReference" value={bookingReference} onChange={(e) => setBookingReference(e.target.value)} className="mt-1 block w-full input-field" />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Save Changes' : 'Add Payment'}</button>
+            </div>
+        </form>
+    );
+};
+
 
 type SubView = 'tours' | 'boats' | 'extras' | 'report';
 type PrivateTourType = 'Half Day' | 'Full Day';
@@ -130,7 +316,7 @@ const initialPrivateTourState = {
 };
 
 export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props) => {
-  const { activities, speedBoatTrips, taxiBoatOptions, staff, bookings, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, currentUserRole } = props;
+  const { activities, speedBoatTrips, taxiBoatOptions, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, currentUserRole } = props;
   const [activeTab, setActiveTab] = useState<SubView>('tours');
   
   // Modal States
@@ -153,6 +339,15 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   
   const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
 
+  const [isEditBookingModalOpen, setIsEditBookingModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  
+  const [isExternalSaleModalOpen, setIsExternalSaleModalOpen] = useState(false);
+  const [editingExternalSale, setEditingExternalSale] = useState<ExternalSale | null>(null);
+
+  const [isPlatformPaymentModalOpen, setIsPlatformPaymentModalOpen] = useState(false);
+  const [editingPlatformPayment, setEditingPlatformPayment] = useState<PlatformPayment | null>(null);
+
   // Common form states
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [commission, setCommission] = useState<string>('');
@@ -162,6 +357,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const [privateTourDetails, setPrivateTourDetails] = useState(initialPrivateTourState);
   const [fuelCost, setFuelCost] = useState('');
   const [captainCost, setCaptainCost] = useState('');
+  const [numberOfPeople, setNumberOfPeople] = useState('1');
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
   const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
 
@@ -220,6 +417,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setPrivateTourDetails(initialPrivateTourState);
     setFuelCost('');
     setCaptainCost('');
+    setNumberOfPeople('1');
   };
 
   const handleOpenBookingModal = (activity: Activity) => {
@@ -264,6 +462,50 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setSelectedTrip(null);
     setSelectedExtra(null);
     setSelectedTaxiOption(null);
+    setIsEditBookingModalOpen(false);
+    setEditingBooking(null);
+    setIsExternalSaleModalOpen(false);
+    setEditingExternalSale(null);
+    setIsPlatformPaymentModalOpen(false);
+    setEditingPlatformPayment(null);
+  };
+
+  const handleOpenEditBookingModal = (booking: Booking) => {
+    setEditingBooking(booking);
+    setIsEditBookingModalOpen(true);
+  };
+
+  const handleSaveBookingUpdate = (updatedBooking: Booking) => {
+      onUpdateBooking(updatedBooking);
+      handleCloseModals();
+  };
+  
+  const handleOpenExternalSaleModal = (sale?: ExternalSale) => {
+    setEditingExternalSale(sale || null);
+    setIsExternalSaleModalOpen(true);
+  };
+  
+  const handleSaveExternalSale = (saleData: Omit<ExternalSale, 'id'> | ExternalSale) => {
+      if ('id' in saleData) {
+          onUpdateExternalSale(saleData);
+      } else {
+          onAddExternalSale(saleData);
+      }
+      handleCloseModals();
+  };
+  
+  const handleOpenPlatformPaymentModal = (payment?: PlatformPayment) => {
+    setEditingPlatformPayment(payment || null);
+    setIsPlatformPaymentModalOpen(true);
+  };
+
+  const handleSavePlatformPayment = (paymentData: Omit<PlatformPayment, 'id'> | PlatformPayment) => {
+      if ('id' in paymentData) {
+          onUpdatePlatformPayment(paymentData);
+      } else {
+          onAddPlatformPayment(paymentData);
+      }
+      handleCloseModals();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -281,26 +523,26 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const handleBookInternalActivity = () => {
     if (!selectedActivity || !selectedStaffId) return alert('Please select a staff member.');
     const { list: extrasList } = calculateExtras(selectedExtras);
-    onBookActivity(selectedActivity.id, selectedStaffId, Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
+    onBookActivity(selectedActivity.id, selectedStaffId, Number(numberOfPeople), Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
     handleCloseModals();
   };
 
   const handleBookExternal = () => {
     if (!selectedExternalActivity || !selectedStaffId) return alert('Please select a staff member.');
     const { list: extrasList } = calculateExtras(selectedExtras);
-    onBookExternalActivity(selectedExternalActivity.id, selectedStaffId, Number(commission) || 0, Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage);
+    onBookExternalActivity(selectedExternalActivity.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage);
     handleCloseModals();
   };
   
   const handleBookSpeedBoat = () => {
     if (!selectedTrip || !selectedStaffId) return alert('Please select a staff member.');
-    onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
+    onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
     handleCloseModals();
   };
 
   const handleBookPrivate = () => {
     if (!selectedStaffId) return alert('Please select a staff member.');
-    onBookPrivateTour(privateTourDetails.type, Number(privateTourDetails.price), selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
+    onBookPrivateTour(privateTourDetails.type, Number(privateTourDetails.price), Number(numberOfPeople), selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
     handleCloseModals();
   };
   
@@ -312,45 +554,90 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
   const handleBookTaxi = () => {
     if (!selectedTaxiOption || !selectedStaffId) return alert('Please select a staff member.');
-    onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
+    onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
     handleCloseModals();
   };
 
-  // Report data
-  const reportData = useMemo(() => {
-    const totalRevenue = bookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
-    const totalEmployeeCommission = bookings.reduce((sum, b) => sum + b.employeeCommission, 0);
-    const totalHostelCommission = bookings.reduce((sum, b) => sum + b.hostelCommission, 0);
-    const totalBookings = bookings.length;
-    const netProfit = totalHostelCommission - bookings.reduce((sum, b) => sum + (b.fuelCost || 0) + (b.captainCost || 0), 0);
-
-    const staffPerformance = staff.map(s => {
-        const staffBookings = bookings.filter(b => b.staffId === s.id);
-        const revenue = staffBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
-        const commission = staffBookings.reduce((sum, b) => sum + b.employeeCommission, 0);
-        return {
-            staffId: s.id,
-            staffName: s.name,
-            bookingsCount: staffBookings.length,
-            totalRevenue: revenue,
-            totalCommission: commission,
-        };
-    }).sort((a,b) => b.totalRevenue - a.totalRevenue);
+  // Report data logic
+    const filteredBookings = useMemo(() => {
+        if (!selectedMonth) return bookings;
+        return bookings.filter(b => b.bookingDate.startsWith(selectedMonth));
+    }, [bookings, selectedMonth]);
     
-    return {
-        totalRevenue,
-        totalEmployeeCommission,
-        totalHostelCommission,
-        netProfit,
-        totalBookings,
-        staffPerformance
-    };
-  }, [bookings, staff]);
+    const filteredExternalSales = useMemo(() => {
+        if (!selectedMonth) return externalSales;
+        return externalSales.filter(s => s.date.startsWith(selectedMonth));
+    }, [externalSales, selectedMonth]);
+    
+    const filteredPlatformPayments = useMemo(() => {
+        if (!selectedMonth) return platformPayments;
+        return platformPayments.filter(p => p.date.startsWith(selectedMonth));
+    }, [platformPayments, selectedMonth]);
+    
+    const filteredUtilityRecords = useMemo(() => {
+        if (!selectedMonth) return utilityRecords;
+        return utilityRecords.filter(r => r.date.startsWith(selectedMonth));
+    }, [utilityRecords, selectedMonth]);
 
-  const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const filteredSalaryAdvances = useMemo(() => {
+        if (!selectedMonth) return salaryAdvances;
+        return salaryAdvances.filter(a => a.date.startsWith(selectedMonth));
+    }, [salaryAdvances, selectedMonth]);
+
+    const reportData = useMemo(() => {
+        // REVENUE
+        const totalBookingRevenue = filteredBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
+        const totalHostelBookingCommission = filteredBookings.reduce((sum, b) => sum + b.hostelCommission, 0);
+        const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
+        const totalPlatformRevenue = filteredPlatformPayments.reduce((sum, p) => sum + p.amount, 0);
+        const totalRevenue = totalHostelBookingCommission + totalExternalSales + totalPlatformRevenue;
+        
+        // EXPENSES
+        const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
+        const totalOperationalCosts = filteredBookings.reduce((sum, b) => sum + (b.fuelCost || 0) + (b.captainCost || 0), 0);
+        const totalEmployeeCommission = filteredBookings.reduce((sum, b) => sum + b.employeeCommission, 0);
+        const totalMonthlySalaries = staff.reduce((sum, s) => sum + (s.salary / 12), 0);
+        const totalSalaryAdvances = filteredSalaryAdvances.reduce((sum, a) => sum + a.amount, 0);
+        const totalExpenses = totalUtilitiesCost + totalOperationalCosts + totalEmployeeCommission + totalMonthlySalaries + totalSalaryAdvances;
+
+        // PROFIT
+        const netProfit = totalRevenue - totalExpenses;
+
+        const staffPerformance = staff.map(s => {
+            const staffBookings = filteredBookings.filter(b => b.staffId === s.id);
+            const revenue = staffBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
+            const commission = staffBookings.reduce((sum, b) => sum + b.employeeCommission, 0);
+            return {
+                staffId: s.id,
+                staffName: s.name,
+                bookingsCount: staffBookings.length,
+                totalRevenue: revenue,
+                totalCommission: commission,
+            };
+        }).sort((a,b) => b.totalRevenue - a.totalRevenue);
+    
+        return {
+            totalRevenue,
+            totalBookingRevenue,
+            totalHostelBookingCommission,
+            totalExternalSales,
+            totalPlatformRevenue,
+            totalExpenses,
+            totalUtilitiesCost,
+            totalOperationalCosts,
+            totalEmployeeCommission,
+            totalMonthlySalaries,
+            totalSalaryAdvances,
+            netProfit,
+            staffPerformance
+        };
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff]);
+
+
+  const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   // Form Components
-  const CommonFormFields = ({ includeCommission = false, includeDiscount = false, includeFuelAndCaptain = false }) => (
+  const CommonFormFields = ({ includeCommission = false, includeDiscount = false, includeFuelAndCaptain = false, includePeopleCount = false }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
             <label htmlFor="staffId" className="block text-sm font-medium text-slate-700">Booking Staff</label>
@@ -359,7 +646,13 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                 {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
         </div>
-        {includeCommission && (
+        {includePeopleCount && (
+             <div>
+                <label htmlFor="numberOfPeople" className="block text-sm font-medium text-slate-700">Number of People</label>
+                <input type="number" id="numberOfPeople" value={numberOfPeople} onChange={(e) => setNumberOfPeople(e.target.value)} min="1" required className="mt-1 block w-full input-field" />
+            </div>
+        )}
+        {includeCommission && currentUserRole === Role.Admin && (
             <div>
                 <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Total Commission (THB)</label>
                 <input type="number" id="commission" value={commission} onChange={(e) => setCommission(e.target.value)} required className="mt-1 block w-full input-field" />
@@ -371,7 +664,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                 <input type="number" id="discount" value={discount} onChange={(e) => setDiscount(e.target.value)} className="mt-1 block w-full input-field" />
             </div>
         )}
-        {includeFuelAndCaptain && (
+        {includeFuelAndCaptain && currentUserRole === Role.Admin && (
             <>
                 <div>
                     <label htmlFor="fuelCost" className="block text-sm font-medium text-slate-700">Fuel Cost (THB)</label>
@@ -535,14 +828,139 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             )}
             {activeTab === 'report' && currentUserRole === Role.Admin && (
                 <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                        <SummaryCard title="Total Bookings" value={reportData.totalBookings} icon={<TicketIcon />} />
+                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center">
+                        <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Filter by Month:</label>
+                        <input 
+                            type="month" 
+                            id="month-filter"
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
+                            className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         <SummaryCard title="Total Revenue" value={currencyFormat(reportData.totalRevenue)} icon={<CurrencyDollarIcon />} />
-                        <SummaryCard title="Staff Commission" value={currencyFormat(reportData.totalEmployeeCommission)} icon={<UserGroupIcon />} />
-                        <SummaryCard title="Hostel Commission" value={currencyFormat(reportData.totalHostelCommission)} icon={<BuildingOfficeIcon />} />
+                        <SummaryCard title="Total Expenses" value={currencyFormat(reportData.totalExpenses)} icon={<ReceiptPercentIcon />} />
                         <SummaryCard title="Net Profit" value={currencyFormat(reportData.netProfit)} icon={<TrendingUpIcon />} />
                     </div>
                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Financial Breakdown - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200">
+                            <div className="bg-white p-4">
+                                <h4 className="font-semibold text-green-600 mb-2">Revenue Streams</h4>
+                                <ul className="space-y-1 text-sm">
+                                    <li className="flex justify-between"><span>Hostel Booking Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalHostelBookingCommission)}</span></li>
+                                    <li className="flex justify-between"><span>External POS Sales:</span> <span className="font-medium">{currencyFormat(reportData.totalExternalSales)}</span></li>
+                                    <li className="flex justify-between"><span>Platform Payments:</span> <span className="font-medium">{currencyFormat(reportData.totalPlatformRevenue)}</span></li>
+                                    <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Revenue:</span> <span>{currencyFormat(reportData.totalRevenue)}</span></li>
+                                </ul>
+                            </div>
+                            <div className="bg-white p-4">
+                                <h4 className="font-semibold text-red-600 mb-2">Expense Streams</h4>
+                                <ul className="space-y-1 text-sm">
+                                    <li className="flex justify-between"><span>Staff Salaries (Monthly Est.):</span> <span className="font-medium">{currencyFormat(reportData.totalMonthlySalaries)}</span></li>
+                                    <li className="flex justify-between"><span>Employee Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommission)}</span></li>
+                                    <li className="flex justify-between"><span>Utility Bills:</span> <span className="font-medium">{currencyFormat(reportData.totalUtilitiesCost)}</span></li>
+                                    <li className="flex justify-between"><span>Operational Costs (Fuel/Captain):</span> <span className="font-medium">{currencyFormat(reportData.totalOperationalCosts)}</span></li>
+                                    <li className="flex justify-between"><span>Salary Advances:</span> <span className="font-medium">{currencyFormat(reportData.totalSalaryAdvances)}</span></li>
+                                    <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h3 className="text-lg font-semibold text-slate-800">Platform Payments - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                            <button onClick={() => handleOpenPlatformPaymentModal()} className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 text-sm">
+                                <PlusIcon className="w-4 h-4 mr-2" /> Add Platform Payment
+                            </button>
+                        </div>
+                        <table className="w-full text-sm text-left text-slate-500">
+                             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                <tr>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Platform</th>
+                                    <th className="px-6 py-3">Amount</th>
+                                    <th className="px-6 py-3">Reference</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
+                                </tr>
+                             </thead>
+                             <tbody>
+                                {filteredPlatformPayments.map(p => (
+                                    <tr key={p.id} className="bg-white border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4">{p.date}</td>
+                                        <td className="px-6 py-4 font-medium">{p.platform}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800">{currencyFormat(p.amount)}</td>
+                                        <td className="px-6 py-4">{p.bookingReference || 'N/A'}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end space-x-3">
+                                                <button onClick={() => handleOpenPlatformPaymentModal(p)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
+                                                <button onClick={() => onDeletePlatformPayment(p.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                             </tbody>
+                        </table>
+                    </div>
+                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h3 className="text-lg font-semibold text-slate-800">External POS Sales - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                            <button onClick={() => handleOpenExternalSaleModal()} className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 text-sm">
+                                <PlusIcon className="w-4 h-4 mr-2" /> Add POS Sale
+                            </button>
+                        </div>
+                        <table className="w-full text-sm text-left text-slate-500">
+                             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                <tr>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Amount</th>
+                                    <th className="px-6 py-3">Description</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
+                                </tr>
+                             </thead>
+                             <tbody>
+                                {filteredExternalSales.map(s => (
+                                    <tr key={s.id} className="bg-white border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4">{s.date}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800">{currencyFormat(s.amount)}</td>
+                                        <td className="px-6 py-4">{s.description || 'N/A'}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end space-x-3">
+                                                <button onClick={() => handleOpenExternalSaleModal(s)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
+                                                <button onClick={() => onDeleteExternalSale(s.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                             </tbody>
+                        </table>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Staff Performance - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <table className="w-full text-sm text-left text-slate-500">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                <tr>
+                                    <th className="px-6 py-3">Staff Name</th>
+                                    <th className="px-6 py-3">Bookings</th>
+                                    <th className="px-6 py-3">Revenue Generated</th>
+                                    <th className="px-6 py-3">Commission Earned</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {reportData.staffPerformance.map(perf => (
+                                    <tr key={perf.staffId} className="bg-white border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4 font-medium text-slate-900">{perf.staffName}</td>
+                                        <td className="px-6 py-4">{perf.bookingsCount}</td>
+                                        <td className="px-6 py-4">{currencyFormat(perf.totalRevenue)}</td>
+                                        <td className="px-6 py-4 font-bold text-green-600">{currencyFormat(perf.totalCommission)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">All Bookings - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
                         <table className="w-full text-sm text-left text-slate-500">
                              <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                                 <tr>
@@ -552,18 +970,22 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                     <th className="px-6 py-3">Staff</th>
                                     <th className="px-6 py-3">Price</th>
                                     <th className="px-6 py-3">Receipt</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                              </thead>
                              <tbody>
-                                {bookings.map(b => (
+                                {filteredBookings.map(b => (
                                     <tr key={b.id} className="bg-white border-b hover:bg-slate-50">
-                                        <td className="px-6 py-4 font-mono text-xs">{b.id}</td>
+                                        <td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td>
                                         <td className="px-6 py-4">{b.bookingDate}</td>
                                         <td className="px-6 py-4 font-medium text-slate-800">{b.itemName}</td>
                                         <td className="px-6 py-4">{staffMap.get(b.staffId) || 'N/A'}</td>
                                         <td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0))}</td>
                                         <td className="px-6 py-4">
-                                            {b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon /></button> : 'N/A'}
+                                            {b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)} className="text-blue-600 hover:text-blue-800"><EyeIcon /></button> : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => handleOpenEditBookingModal(b)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
                                         </td>
                                     </tr>
                                 ))}
@@ -577,9 +999,45 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         {/* --- Modals --- */}
         <Modal isOpen={isBookingModalOpen} onClose={handleCloseModals} title={`Book: ${selectedActivity?.name}`}>
             <div className="space-y-6">
-                <CommonFormFields includeDiscount includeFuelAndCaptain />
+                <CommonFormFields includeDiscount includeFuelAndCaptain includePeopleCount />
                 <ExtrasFormFields />
                 <PaymentFormFields />
+                
+                {(() => {
+                    const numPeople = Number(numberOfPeople) || 1;
+                    const baseTotal = (selectedActivity?.price || 0) * numPeople;
+                    const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras);
+                    const finalTotal = baseTotal + extrasTotal - (Number(discount) || 0);
+
+                    return (
+                        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-2">Booking Summary</h4>
+                            <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                    <span>{selectedActivity?.name} ({numPeople} x {currencyFormat(selectedActivity?.price || 0)})</span>
+                                    <span>{currencyFormat(baseTotal)}</span>
+                                </div>
+                                {extrasList.length > 0 && (
+                                <div className="flex justify-between border-t mt-1 pt-1">
+                                    <span>Extras Total</span>
+                                    <span>{currencyFormat(extrasTotal)}</span>
+                                </div>
+                                )}
+                                {(Number(discount) || 0) > 0 && (
+                                <div className="flex justify-between text-red-600">
+                                    <span>Discount</span>
+                                    <span>-{currencyFormat(Number(discount))}</span>
+                                </div>
+                                )}
+                                <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
+                                    <span>Total</span>
+                                    <span>{currencyFormat(finalTotal)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 <div className="flex justify-end pt-4">
                     <button onClick={handleBookInternalActivity} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
                 </div>
@@ -588,9 +1046,43 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isExternalBookingModalOpen} onClose={handleCloseModals} title={`Book External: ${selectedExternalActivity?.name}`}>
              <div className="space-y-6">
-                <CommonFormFields includeCommission includeDiscount />
+                <CommonFormFields includeCommission includeDiscount includePeopleCount />
                 <ExtrasFormFields />
                 <PaymentFormFields />
+                 {(() => {
+                    const numPeople = Number(numberOfPeople) || 1;
+                    const baseTotal = (selectedExternalActivity?.price || 0) * numPeople;
+                    const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras);
+                    const finalTotal = baseTotal + extrasTotal - (Number(discount) || 0);
+
+                    return (
+                        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-2">Booking Summary</h4>
+                            <div className="space-y-1 text-sm">
+                                <div className="flex justify-between">
+                                    <span>{selectedExternalActivity?.name} ({numPeople} x {currencyFormat(selectedExternalActivity?.price || 0)})</span>
+                                    <span>{currencyFormat(baseTotal)}</span>
+                                </div>
+                                {extrasList.length > 0 && (
+                                <div className="flex justify-between border-t mt-1 pt-1">
+                                    <span>Extras Total</span>
+                                    <span>{currencyFormat(extrasTotal)}</span>
+                                </div>
+                                )}
+                                {(Number(discount) || 0) > 0 && (
+                                <div className="flex justify-between text-red-600">
+                                    <span>Discount</span>
+                                    <span>-{currencyFormat(Number(discount))}</span>
+                                </div>
+                                )}
+                                <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
+                                    <span>Total</span>
+                                    <span>{currencyFormat(finalTotal)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
                 <div className="flex justify-end pt-4">
                     <button onClick={handleBookExternal} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
                 </div>
@@ -599,8 +1091,24 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
          <Modal isOpen={isSpeedBoatModalOpen} onClose={handleCloseModals} title={`Book: ${selectedTrip?.route}`}>
              <div className="space-y-6">
-                <CommonFormFields includeCommission />
+                <CommonFormFields includeCommission includePeopleCount />
                 <PaymentFormFields />
+                 {(() => {
+                    const numPeople = Number(numberOfPeople) || 1;
+                    const finalTotal = (selectedTrip?.price || 0) * numPeople;
+
+                    return (
+                        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                            <h4 className="text-lg font-semibold text-slate-800 mb-2">Booking Summary</h4>
+                            <div className="space-y-1 text-sm">
+                                <div className="flex justify-between font-bold text-base">
+                                    <span>Total</span>
+                                    <span>{currencyFormat(finalTotal)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
                 <div className="flex justify-end pt-4">
                     <button onClick={handleBookSpeedBoat} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
                 </div>
@@ -622,7 +1130,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         <input type="number" id="tourPrice" value={privateTourDetails.price} onChange={e => setPrivateTourDetails(p => ({...p, price: e.target.value}))} required className="mt-1 block w-full input-field" />
                     </div>
                 </div>
-                <CommonFormFields includeCommission includeFuelAndCaptain />
+                <CommonFormFields includeCommission includeFuelAndCaptain includePeopleCount />
                 <PaymentFormFields />
                  <div className="flex justify-end pt-4">
                     <button onClick={handleBookPrivate} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
@@ -642,7 +1150,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isTaxiModalOpen} onClose={handleCloseModals} title={`Book Taxi: ${selectedTaxiOption?.name}`}>
              <div className="space-y-6">
-                <CommonFormFields includeCommission />
+                <CommonFormFields includeCommission includePeopleCount />
                 <PaymentFormFields />
                 <div className="flex justify-end pt-4">
                     <button onClick={handleBookTaxi} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
@@ -653,6 +1161,33 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         <Modal isOpen={!!viewingReceipt} onClose={() => setViewingReceipt(null)} title="View Receipt">
             {viewingReceipt && <img src={viewingReceipt} alt="Receipt" className="w-full h-auto rounded-md" />}
         </Modal>
+        
+        <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title={`Edit Booking: ${editingBooking?.id?.slice(-6)}`}>
+            {editingBooking && (
+                <EditBookingForm 
+                    booking={editingBooking}
+                    onSave={handleSaveBookingUpdate}
+                    onClose={handleCloseModals}
+                />
+            )}
+        </Modal>
+        
+        <Modal isOpen={isExternalSaleModalOpen} onClose={handleCloseModals} title={editingExternalSale ? 'Edit POS Sale' : 'Add POS Sale'}>
+            <ExternalSaleForm 
+                onSave={handleSaveExternalSale}
+                onClose={handleCloseModals}
+                initialData={editingExternalSale}
+            />
+        </Modal>
+
+        <Modal isOpen={isPlatformPaymentModalOpen} onClose={handleCloseModals} title={editingPlatformPayment ? 'Edit Platform Payment' : 'Add Platform Payment'}>
+            <PlatformPaymentForm 
+                onSave={handleSavePlatformPayment}
+                onClose={handleCloseModals}
+                initialData={editingPlatformPayment}
+            />
+        </Modal>
+
          <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
     </div>
   );
