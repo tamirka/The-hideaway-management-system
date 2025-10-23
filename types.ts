@@ -17,6 +17,12 @@ export enum BedStatus {
     'Needs Cleaning' = 'Needs Cleaning',
 }
 
+// Added Role enum for permission control
+export enum Role {
+    Admin = 'Admin',
+    Staff = 'Staff',
+}
+
 // Fix: Add Bed interface for use in RoomManagement component.
 export interface Bed {
     id: string;
@@ -48,7 +54,7 @@ export interface Asset {
 export interface Staff {
   id: string;
   name: string;
-  role: string;
+  role: Role;
   salary: number;
   contact: string;
   employeeId: string;

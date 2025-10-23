@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Room, Bed } from '../types';
-import { BedStatus, EntityCondition } from '../types';
+import { BedStatus, EntityCondition, Role } from '../types';
 import Modal from './Modal';
 import Badge from './Badge';
 import { PlusIcon, EditIcon, TrashIcon, BedIcon } from '../constants';
@@ -95,9 +95,10 @@ interface RoomManagementProps {
   onAddRoom: (newRoom: Omit<Room, 'id'>) => void;
   onUpdateRoom: (updatedRoom: Room) => void;
   onDeleteRoom: (roomId: string) => void;
+  currentUserRole: Role;
 }
 
-const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpdateRoom, onDeleteRoom }) => {
+const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpdateRoom, onDeleteRoom, currentUserRole }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
@@ -148,10 +149,12 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
     <div>
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Rooms & Beds</h1>
-        <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
-          <PlusIcon className="w-5 h-5 mr-2" />
-          Add Room
-        </button>
+        {currentUserRole === Role.Admin && (
+            <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
+            <PlusIcon className="w-5 h-5 mr-2" />
+            Add Room
+            </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -165,7 +168,9 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
                   </div>
                   <div className="flex space-x-2 flex-shrink-0">
                       <button onClick={() => handleOpenModal(room)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                      <button onClick={() => onDeleteRoom(room.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
+                      {currentUserRole === Role.Admin && (
+                        <button onClick={() => onDeleteRoom(room.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
+                      )}
                   </div>
               </div>
             </div>

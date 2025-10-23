@@ -1,19 +1,19 @@
 
 
 // Fix: Implement the main App component to manage state and render child components.
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StaffManagement } from './components/StaffManagement';
 import UtilitiesManagement from './components/UtilitiesManagement';
 import RoomManagement from './components/RoomManagement';
 import { ActivitiesManagement } from './components/ActivitiesManagement';
 import type { Staff, Shift, Task, UtilityRecord, Room, Bed, Absence, Activity, SpeedBoatTrip, Booking, Extra, PaymentMethod, SalaryAdvance, TaxiBoatOption } from './types';
-import { EntityCondition, TaskStatus, BedStatus } from './types';
+import { EntityCondition, TaskStatus, BedStatus, Role } from './types';
 
 // Mock Data
 const MOCK_STAFF_DATA: Staff[] = [
-    { id: 'staff1', name: 'John Doe', role: 'Manager', salary: 75000, contact: 'john.d@example.com', employeeId: 'EMP1001' },
-    { id: 'staff2', name: 'Jane Smith', role: 'Nurse', salary: 62000, contact: 'jane.s@example.com', employeeId: 'EMP1002' },
-    { id: 'staff3', name: 'Peter Jones', role: 'Maintenance', salary: 51000, contact: 'peter.j@example.com', employeeId: 'EMP1003' },
+    { id: 'staff1', name: 'John Doe', role: Role.Admin, salary: 75000, contact: 'john.d@example.com', employeeId: 'EMP1001' },
+    { id: 'staff2', name: 'Jane Smith', role: Role.Staff, salary: 62000, contact: 'jane.s@example.com', employeeId: 'EMP1002' },
+    { id: 'staff3', name: 'Peter Jones', role: Role.Staff, salary: 51000, contact: 'peter.j@example.com', employeeId: 'EMP1003' },
 ];
 const MOCK_SHIFTS_DATA: Shift[] = [
     { id: 'shift1', date: '2024-07-29', staffName: 'Jane Smith', startTime: '07:00', endTime: '15:00' },
@@ -157,6 +157,7 @@ type View = 'rooms' | 'staff' | 'utilities' | 'activities';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('activities');
+  const [currentUserRole, setCurrentUserRole] = useState<Role>(Role.Admin);
 
   // State Management
   const [staff, setStaff] = useState<Staff[]>(MOCK_STAFF_DATA);
@@ -388,15 +389,30 @@ const App: React.FC = () => {
     { id: 'utilities', label: 'Utilities' },
     { id: 'activities', label: 'Activities' },
   ];
+  
+  const visibleTabs = useMemo(() => {
+    if (currentUserRole === Role.Admin) {
+      return TABS;
+    }
+    return TABS.filter(tab => tab.id === 'rooms' || tab.id === 'activities');
+  }, [currentUserRole]);
+
+  useEffect(() => {
+      const isCurrentViewVisible = visibleTabs.some(tab => tab.id === currentView);
+      if (!isCurrentViewVisible) {
+          setCurrentView(visibleTabs[0].id);
+      }
+  }, [currentUserRole, currentView, visibleTabs]);
+
 
   const renderContent = () => {
     switch (currentView) {
       case 'rooms':
-        return <RoomManagement rooms={rooms} onAddRoom={handleAddRoom} onUpdateRoom={handleUpdateRoom} onDeleteRoom={handleDeleteRoom} />;
+        return <RoomManagement rooms={rooms} onAddRoom={handleAddRoom} onUpdateRoom={handleUpdateRoom} onDeleteRoom={handleDeleteRoom} currentUserRole={currentUserRole} />;
       case 'staff':
-        return <StaffManagement staff={staff} shifts={shifts} tasks={tasks} absences={absences} salaryAdvances={salaryAdvances} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onAddAbsence={handleAddAbsence} onUpdateAbsence={handleUpdateAbsence} onDeleteAbsence={handleDeleteAbsence} onAddSalaryAdvance={handleAddSalaryAdvance} onUpdateSalaryAdvance={handleUpdateSalaryAdvance} onDeleteSalaryAdvance={handleDeleteSalaryAdvance} />;
+        return currentUserRole === Role.Admin ? <StaffManagement staff={staff} shifts={shifts} tasks={tasks} absences={absences} salaryAdvances={salaryAdvances} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onAddAbsence={handleAddAbsence} onUpdateAbsence={handleUpdateAbsence} onDeleteAbsence={handleDeleteAbsence} onAddSalaryAdvance={handleAddSalaryAdvance} onUpdateSalaryAdvance={handleUpdateSalaryAdvance} onDeleteSalaryAdvance={handleDeleteSalaryAdvance} /> : null;
       case 'utilities':
-          return <UtilitiesManagement records={utilityRecords} onAddRecord={handleAddUtilityRecord} onUpdateRecord={handleUpdateUtilityRecord} onDeleteRecord={handleDeleteUtilityRecord} />;
+          return currentUserRole === Role.Admin ? <UtilitiesManagement records={utilityRecords} onAddRecord={handleAddUtilityRecord} onUpdateRecord={handleUpdateUtilityRecord} onDeleteRecord={handleDeleteUtilityRecord} /> : null;
       case 'activities':
           return <ActivitiesManagement 
                     activities={activities} 
@@ -410,6 +426,7 @@ const App: React.FC = () => {
                     onBookPrivateTour={handleBookPrivateTour}
                     onBookStandaloneExtra={handleBookStandaloneExtra}
                     onBookTaxiBoat={handleBookTaxiBoat}
+                    currentUserRole={currentUserRole}
                  />;
       default:
         return null;
@@ -422,9 +439,21 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
                  <h1 className="text-xl font-bold text-slate-800">Facility Management Dashboard</h1>
+                 <div className="flex items-center space-x-2">
+                    <label htmlFor="role-switcher" className="text-sm font-medium text-slate-600">Viewing as:</label>
+                    <select
+                        id="role-switcher"
+                        value={currentUserRole}
+                        onChange={(e) => setCurrentUserRole(e.target.value as Role)}
+                        className="rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                    >
+                        <option value={Role.Admin}>Admin</option>
+                        <option value={Role.Staff}>Staff</option>
+                    </select>
+                 </div>
             </div>
             <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto -mb-px" aria-label="Tabs">
-                {TABS.map(tab => (
+                {visibleTabs.map(tab => (
                     <button key={tab.id} onClick={() => setCurrentView(tab.id)}
                         className={`${
                             currentView === tab.id
