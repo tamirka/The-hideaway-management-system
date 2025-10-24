@@ -10,11 +10,10 @@ interface UtilityFormProps {
   onSubmit: (record: Omit<UtilityRecord, 'id'> | UtilityRecord) => void;
   onClose: () => void;
   initialData?: UtilityRecord | null;
+  utilityCategories: string[];
 }
 
-const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialData }) => {
-  const UTILITY_CATEGORIES = ['Food', 'Internet', 'Water', 'Cleaning', 'Transport', 'Electricity', 'Plumber'];
-  
+const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialData, utilityCategories }) => {
   const [category, setCategory] = useState('');
   const [otherType, setOtherType] = useState('');
   const [date, setDate] = useState('');
@@ -24,7 +23,7 @@ const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialDat
 
   useEffect(() => {
     if (initialData) {
-      if (UTILITY_CATEGORIES.includes(initialData.utilityType)) {
+      if (utilityCategories.includes(initialData.utilityType)) {
         setCategory(initialData.utilityType);
         setOtherType('');
       } else {
@@ -41,7 +40,7 @@ const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialDat
       setCost('');
       setBillImage(null);
     }
-  }, [initialData]);
+  }, [initialData, utilityCategories]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -83,7 +82,7 @@ const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialDat
             <label htmlFor="category" className="block text-sm font-medium text-slate-700">Category</label>
             <select id="category" value={category} onChange={(e) => setCategory(e.target.value)} required className="mt-1 block w-full input-field">
                 <option value="">Select a category...</option>
-                {UTILITY_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {utilityCategories.map(c => <option key={c} value={c}>{c}</option>)}
                 <option value="Other">Other</option>
             </select>
         </div>
@@ -170,13 +169,19 @@ interface UtilitiesManagementProps {
   onAddRecord: (newRecord: Omit<UtilityRecord, 'id'>) => void;
   onUpdateRecord: (updatedRecord: UtilityRecord) => void;
   onDeleteRecord: (recordId: string) => void;
+  utilityCategories: string[];
+  onAddCategory: (category: string) => void;
+  onDeleteCategory: (category: string) => void;
 }
 
-const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAddRecord, onUpdateRecord, onDeleteRecord }) => {
+const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAddRecord, onUpdateRecord, onDeleteRecord, utilityCategories, onAddCategory, onDeleteCategory }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<UtilityRecord | null>(null);
     const [viewingBill, setViewingBill] = useState<string | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+    const [newCategory, setNewCategory] = useState('');
+
 
     const handleOpenModal = (record?: UtilityRecord) => {
         setEditingRecord(record || null);
@@ -192,6 +197,13 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         }
     };
     
+    const handleAddCategory = () => {
+        if (newCategory.trim()) {
+            onAddCategory(newCategory.trim());
+            setNewCategory('');
+        }
+    };
+
     const filteredRecords = useMemo(() => {
         if (!selectedMonth) return records;
         return records.filter(r => r.date.startsWith(selectedMonth));
@@ -239,10 +251,15 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         <div className="space-y-8">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Utilities Tracking</h1>
-                <button onClick={() => handleOpenModal()} className="mt-4 sm:mt-0 flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
-                    <PlusIcon className="w-5 h-5 mr-2" />
-                    Add Record
-                </button>
+                 <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm hover:bg-slate-700 transition-colors">
+                        Manage Categories
+                    </button>
+                    <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
+                        <PlusIcon className="w-5 h-5 mr-2" />
+                        Add Record
+                    </button>
+                </div>
             </div>
 
             {/* Analytics Dashboard */}
@@ -336,11 +353,44 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRecord ? 'Edit Record' : 'Add New Record'}>
-                <UtilityForm onSubmit={handleSubmit} onClose={handleCloseModal} initialData={editingRecord} />
+                <UtilityForm onSubmit={handleSubmit} onClose={handleCloseModal} initialData={editingRecord} utilityCategories={utilityCategories} />
             </Modal>
             
             <Modal isOpen={!!viewingBill} onClose={() => setViewingBill(null)} title="View Bill">
                 {viewingBill && <img src={viewingBill} alt="Utility bill" className="w-full h-auto rounded-md" />}
+            </Modal>
+
+            <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title="Manage Utility Categories">
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="newCategory" className="block text-sm font-medium text-slate-700">Add New Category</label>
+                        <div className="mt-1 flex space-x-2">
+                            <input
+                                type="text"
+                                id="newCategory"
+                                value={newCategory}
+                                onChange={(e) => setNewCategory(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                                placeholder="e.g., Maintenance"
+                                className="flex-grow input-field"
+                            />
+                            <button onClick={handleAddCategory} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-semibold">Add</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-medium text-slate-700 mb-2">Existing Categories</h4>
+                        <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded-md bg-slate-50">
+                            {utilityCategories.map(category => (
+                                <div key={category} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
+                                    <span className="text-sm font-medium text-slate-800">{category}</span>
+                                    <button onClick={() => onDeleteCategory(category)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                        <TrashIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

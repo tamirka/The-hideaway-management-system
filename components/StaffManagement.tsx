@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Staff, Shift, Task, Absence, SalaryAdvance } from '../types';
-import { TaskStatus } from '../types';
+// Fix: Import Role enum to be used in the StaffForm.
+import { TaskStatus, Role } from '../types';
 import Modal from './Modal';
 import Badge from './Badge';
 import { PlusIcon, EditIcon, TrashIcon } from '../constants';
@@ -15,21 +16,26 @@ interface StaffFormProps {
 const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    role: initialData?.role || '',
-    salary: initialData?.salary || '',
+    // Fix: Set a default role from the Role enum and ensure it's a string for the select input.
+    role: initialData?.role || Role.Staff,
+    // Fix: Convert salary to a string for the input field to maintain a consistent type.
+    salary: initialData?.salary?.toString() || '',
     contact: initialData?.contact || '',
     employeeId: initialData?.employeeId || '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fix: Update handleChange to handle both input and select elements.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Fix: Cast the role back to the Role enum type and convert salary to a number before submission.
     const staffData = {
         ...formData,
+        role: formData.role as Role,
         salary: Number(formData.salary)
     };
     if (initialData) {
@@ -47,9 +53,14 @@ const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData })
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
                 <input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
+            {/* Fix: Replace text input with a select dropdown for Role to ensure valid data. */}
             <div>
                 <label htmlFor="role" className="block text-sm font-medium text-slate-700">Role</label>
-                <input type="text" id="role" value={formData.role} onChange={handleChange} required className="mt-1 block w-full input-field" />
+                <select id="role" value={formData.role} onChange={handleChange} required className="mt-1 block w-full input-field">
+                    {Object.values(Role).map(roleValue => (
+                        <option key={roleValue} value={roleValue}>{roleValue}</option>
+                    ))}
+                </select>
             </div>
             <div>
                 <label htmlFor="salary" className="block text-sm font-medium text-slate-700">Salary (Annual)</label>
@@ -306,13 +317,35 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
 
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
     
-    const advancesByStaff = useMemo(() => {
+    const monthlyAdvancesByStaff = useMemo(() => {
         const advancesMap = new Map<string, number>();
-        salaryAdvances.forEach(advance => {
+        const monthlyAdvances = salaryAdvances.filter(a => a.date.startsWith(selectedMonth));
+        monthlyAdvances.forEach(advance => {
             advancesMap.set(advance.staffId, (advancesMap.get(advance.staffId) || 0) + advance.amount);
         });
         return advancesMap;
-    }, [salaryAdvances]);
+    }, [salaryAdvances, selectedMonth]);
+
+    const monthlyAbsenceDeductionsByStaff = useMemo(() => {
+        const deductionsMap = new Map<string, number>();
+        if (!selectedMonth) return deductionsMap;
+
+        const [year, month] = selectedMonth.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        if (daysInMonth === 0) return deductionsMap;
+
+        const monthlyAbsences = absences.filter(a => a.date.startsWith(selectedMonth));
+        
+        staff.forEach(s => {
+            const monthlySalary = s.salary / 12;
+            const dailyDeductionRate = monthlySalary / daysInMonth;
+            const staffAbsenceCount = monthlyAbsences.filter(a => a.staffId === s.id).length;
+            const totalDeduction = staffAbsenceCount * dailyDeductionRate;
+            deductionsMap.set(s.id, totalDeduction);
+        });
+
+        return deductionsMap;
+    }, [staff, absences, selectedMonth]);
 
     const groupedShifts = useMemo(() => {
         return shifts.reduce((acc, shift) => {
@@ -416,7 +449,17 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
         <div className="mt-6">
             {activeTab === 'employees' && (
                 <div>
-                    <div className="flex justify-end mb-4">
+                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between mb-6">
+                         <div>
+                            <label htmlFor="month-filter-employees" className="text-sm font-medium text-slate-600">View salary details for month:</label>
+                            <input 
+                                type="month" 
+                                id="month-filter-employees"
+                                value={selectedMonth}
+                                onChange={e => setSelectedMonth(e.target.value)}
+                                className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                            />
+                        </div>
                         <button onClick={() => handleOpenStaffModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
                            <PlusIcon className="w-5 h-5 mr-2" /> Add Employee
                         </button>
@@ -425,8 +468,9 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                     {/* Mobile Card View */}
                     <div className="md:hidden space-y-4">
                         {staff.map(s => {
-                            const totalAdvances = advancesByStaff.get(s.id) || 0;
-                            const netMonthlySalary = (s.salary / 12) - totalAdvances;
+                            const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
+                            const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
+                            const netMonthlySalary = (s.salary / 12) - totalAdvances - totalDeductions;
                             return (
                                 <div key={s.id} className="bg-white rounded-lg shadow-md p-4 space-y-3">
                                     <div className="flex justify-between items-start">
@@ -443,7 +487,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                          <p><span className="font-semibold">ID:</span> {s.employeeId}</p>
                                          <p><span className="font-semibold">Contact:</span> {s.contact}</p>
                                          <p><span className="font-semibold">Salary (Annual):</span> ${s.salary.toLocaleString()}</p>
-                                         <p><span className="font-semibold text-red-600">Total Advances:</span> ${totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                         <p><span className="font-semibold text-red-600">Monthly Advances:</span> ${totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                         <p><span className="font-semibold text-orange-600">Absence Deductions:</span> ${totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                          <p className="font-bold text-green-600 pt-1 border-t mt-1"><span className="font-semibold">Net Monthly Salary:</span> ${netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                 </div>
@@ -459,25 +504,26 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     <th className="px-6 py-3">Name</th>
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Employee ID</th>
-                                    <th className="px-6 py-3">Contact</th>
                                     <th className="px-6 py-3">Salary (Annual)</th>
-                                    <th className="px-6 py-3">Total Advances</th>
+                                    <th className="px-6 py-3">Monthly Advances</th>
+                                    <th className="px-6 py-3">Absence Deductions</th>
                                     <th className="px-6 py-3">Net Monthly Salary</th>
                                     <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {staff.map(s => {
-                                    const totalAdvances = advancesByStaff.get(s.id) || 0;
-                                    const netMonthlySalary = (s.salary / 12) - totalAdvances;
+                                    const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
+                                    const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
+                                    const netMonthlySalary = (s.salary / 12) - totalAdvances - totalDeductions;
                                     return (
                                         <tr key={s.id} className="bg-white border-b hover:bg-slate-50">
                                             <td className="px-6 py-4 font-medium text-slate-900">{s.name}</td>
                                             <td className="px-6 py-4">{s.role}</td>
                                             <td className="px-6 py-4">{s.employeeId}</td>
-                                            <td className="px-6 py-4">{s.contact}</td>
                                             <td className="px-6 py-4">${s.salary.toLocaleString()}</td>
                                             <td className="px-6 py-4 text-red-600 font-medium">${totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-6 py-4 text-orange-600 font-medium">${totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-green-600 font-bold">${netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end space-x-3">

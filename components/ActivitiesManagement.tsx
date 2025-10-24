@@ -92,12 +92,12 @@ interface ActivitiesManagementProps {
   platformPayments: PlatformPayment[];
   utilityRecords: UtilityRecord[];
   salaryAdvances: SalaryAdvance[];
-  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
-  onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
-  onBookStandaloneExtra: (extra: Extra, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
-  onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, receiptImage?: string) => void;
+  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
+  onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
+  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
+  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
+  onBookStandaloneExtra: (extra: Extra, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
+  onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
   onUpdateBooking: (updatedBooking: Booking) => void;
   onAddExternalSale: (newSale: Omit<ExternalSale, 'id'>) => void;
   onUpdateExternalSale: (updatedSale: ExternalSale) => void;
@@ -105,6 +105,9 @@ interface ActivitiesManagementProps {
   onAddPlatformPayment: (newPayment: Omit<PlatformPayment, 'id'>) => void;
   onUpdatePlatformPayment: (updatedPayment: PlatformPayment) => void;
   onDeletePlatformPayment: (paymentId: string) => void;
+  onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
+  onUpdateSpeedBoatTrip: (updatedTrip: SpeedBoatTrip) => void;
+  onDeleteSpeedBoatTrip: (tripId: string) => void;
   currentUserRole: Role;
 }
 
@@ -295,6 +298,69 @@ const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClo
     );
 };
 
+// Form for adding/editing SpeedBoatTrip
+interface SpeedBoatTripFormProps {
+    onSave: (trip: Omit<SpeedBoatTrip, 'id'> | SpeedBoatTrip) => void;
+    onClose: () => void;
+    initialData?: SpeedBoatTrip | null;
+}
+
+const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, initialData }) => {
+    const [formData, setFormData] = useState({
+        route: initialData?.route || '',
+        company: initialData?.company || '',
+        price: initialData?.price.toString() || '',
+        cost: initialData?.cost.toString() || '',
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const tripData = {
+            ...formData,
+            price: Number(formData.price) || 0,
+            cost: Number(formData.cost) || 0,
+        };
+        if (initialData) {
+            onSave({ ...initialData, ...tripData });
+        } else {
+            onSave(tripData);
+        }
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="route" className="block text-sm font-medium text-slate-700">Route</label>
+                    <input type="text" id="route" value={formData.route} onChange={handleChange} required className="mt-1 block w-full input-field" placeholder="e.g., Lipe - Pakbara"/>
+                </div>
+                 <div>
+                    <label htmlFor="company" className="block text-sm font-medium text-slate-700">Company</label>
+                    <input type="text" id="company" value={formData.company} onChange={handleChange} required className="mt-1 block w-full input-field" />
+                </div>
+                 <div>
+                    <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
+                    <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
+                </div>
+                <div>
+                    <label htmlFor="cost" className="block text-sm font-medium text-slate-700">Cost (THB)</label>
+                    <input type="number" id="cost" value={formData.cost} onChange={handleChange} required className="mt-1 block w-full input-field" />
+                </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Save Changes' : 'Add Trip'}</button>
+            </div>
+        </form>
+    )
+}
+
 
 type SubView = 'tours' | 'boats' | 'extras' | 'report';
 type PrivateTourType = 'Half Day' | 'Full Day';
@@ -316,7 +382,7 @@ const initialPrivateTourState = {
 };
 
 export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props) => {
-  const { activities, speedBoatTrips, taxiBoatOptions, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, currentUserRole } = props;
+  const { activities, speedBoatTrips, taxiBoatOptions, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, currentUserRole } = props;
   const [activeTab, setActiveTab] = useState<SubView>('tours');
   
   // Modal States
@@ -325,6 +391,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   
   const [isSpeedBoatModalOpen, setIsSpeedBoatModalOpen] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<SpeedBoatTrip | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
+  const [availableTripsForRoute, setAvailableTripsForRoute] = useState<SpeedBoatTrip[]>([]);
   
   const [isExternalBookingModalOpen, setIsExternalBookingModalOpen] = useState(false);
   const [selectedExternalActivity, setSelectedExternalActivity] = useState<Activity | null>(null);
@@ -348,6 +416,11 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const [isPlatformPaymentModalOpen, setIsPlatformPaymentModalOpen] = useState(false);
   const [editingPlatformPayment, setEditingPlatformPayment] = useState<PlatformPayment | null>(null);
 
+  const [isManageTripsModalOpen, setIsManageTripsModalOpen] = useState(false);
+  const [editingSpeedBoatTrip, setEditingSpeedBoatTrip] = useState<SpeedBoatTrip | null>(null);
+  const [showTripForm, setShowTripForm] = useState(false);
+
+
   // Common form states
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [commission, setCommission] = useState<string>('');
@@ -359,6 +432,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const [captainCost, setCaptainCost] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('1');
   const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [employeeCommission, setEmployeeCommission] = useState('');
+  const [hostelCommission, setHostelCommission] = useState('');
+
 
   const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
 
@@ -418,6 +495,9 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setFuelCost('');
     setCaptainCost('');
     setNumberOfPeople('1');
+    setBookingDate(new Date().toISOString().split('T')[0]);
+    setEmployeeCommission('');
+    setHostelCommission('');
   };
 
   const handleOpenBookingModal = (activity: Activity) => {
@@ -430,11 +510,27 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setSelectedExternalActivity(activity);
     setIsExternalBookingModalOpen(true);
   };
-  const handleOpenSpeedBoatModal = (trip: SpeedBoatTrip) => {
+  
+// Fix: Use generic type argument for reduce to ensure correct type inference.
+  const groupedSpeedBoatTrips = useMemo(() => {
+    return speedBoatTrips.reduce<Record<string, SpeedBoatTrip[]>>((acc, trip) => {
+        const { route } = trip;
+        if (!acc[route]) {
+            acc[route] = [];
+        }
+        acc[route].push(trip);
+        return acc;
+    }, {});
+  }, [speedBoatTrips]);
+
+  const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {
     resetCommonStates();
-    setSelectedTrip(trip);
+    setSelectedRoute(route);
+    setAvailableTripsForRoute(trips);
+    setSelectedTrip(trips[0] || null);
     setIsSpeedBoatModalOpen(true);
   };
+  
   const handleOpenPrivateTourModal = () => {
     resetCommonStates();
     setIsPrivateTourModalOpen(true);
@@ -460,6 +556,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setSelectedActivity(null);
     setSelectedExternalActivity(null);
     setSelectedTrip(null);
+    setSelectedRoute(null);
+    setAvailableTripsForRoute([]);
     setSelectedExtra(null);
     setSelectedTaxiOption(null);
     setIsEditBookingModalOpen(false);
@@ -468,6 +566,9 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setEditingExternalSale(null);
     setIsPlatformPaymentModalOpen(false);
     setEditingPlatformPayment(null);
+    setIsManageTripsModalOpen(false);
+    setEditingSpeedBoatTrip(null);
+    setShowTripForm(false);
   };
 
   const handleOpenEditBookingModal = (booking: Booking) => {
@@ -508,6 +609,30 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
       handleCloseModals();
   };
 
+    const handleOpenManageTripsModal = () => {
+        setIsManageTripsModalOpen(true);
+    };
+
+    const handleEditTrip = (trip: SpeedBoatTrip) => {
+        setEditingSpeedBoatTrip(trip);
+        setShowTripForm(true);
+    };
+
+    const handleAddNewTrip = () => {
+        setEditingSpeedBoatTrip(null);
+        setShowTripForm(true);
+    };
+
+    const handleSaveSpeedBoatTrip = (tripData: Omit<SpeedBoatTrip, 'id'> | SpeedBoatTrip) => {
+        if ('id' in tripData) {
+            onUpdateSpeedBoatTrip(tripData);
+        } else {
+            onAddSpeedBoatTrip(tripData);
+        }
+        setEditingSpeedBoatTrip(null);
+        setShowTripForm(false);
+    };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -523,38 +648,38 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const handleBookInternalActivity = () => {
     if (!selectedActivity || !selectedStaffId) return alert('Please select a staff member.');
     const { list: extrasList } = calculateExtras(selectedExtras);
-    onBookActivity(selectedActivity.id, selectedStaffId, Number(numberOfPeople), Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
+    onBookActivity(selectedActivity.id, selectedStaffId, Number(numberOfPeople), Number(discount) || 0, extrasList, paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined, Number(employeeCommission) || undefined, Number(hostelCommission) || undefined);
     handleCloseModals();
   };
 
   const handleBookExternal = () => {
     if (!selectedExternalActivity || !selectedStaffId) return alert('Please select a staff member.');
     const { list: extrasList } = calculateExtras(selectedExtras);
-    onBookExternalActivity(selectedExternalActivity.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, Number(discount) || 0, extrasList, paymentDetails.method, paymentDetails.receiptImage);
+    onBookExternalActivity(selectedExternalActivity.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, Number(discount) || 0, extrasList, paymentDetails.method, bookingDate, paymentDetails.receiptImage);
     handleCloseModals();
   };
   
   const handleBookSpeedBoat = () => {
     if (!selectedTrip || !selectedStaffId) return alert('Please select a staff member.');
-    onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
+    onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage);
     handleCloseModals();
   };
 
   const handleBookPrivate = () => {
     if (!selectedStaffId) return alert('Please select a staff member.');
-    onBookPrivateTour(privateTourDetails.type, Number(privateTourDetails.price), Number(numberOfPeople), selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
+    onBookPrivateTour(privateTourDetails.type, Number(privateTourDetails.price), Number(numberOfPeople), selectedStaffId, Number(commission) || 0, paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined);
     handleCloseModals();
   };
   
   const handleBookExtra = () => {
     if (!selectedExtra || !selectedStaffId) return alert('Please select a staff member.');
-    onBookStandaloneExtra(selectedExtra, selectedStaffId, Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
+    onBookStandaloneExtra(selectedExtra, selectedStaffId, Number(commission) || 0, paymentDetails.method, bookingDate, paymentDetails.receiptImage);
     handleCloseModals();
   };
 
   const handleBookTaxi = () => {
     if (!selectedTaxiOption || !selectedStaffId) return alert('Please select a staff member.');
-    onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, paymentDetails.receiptImage);
+    onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, bookingDate, paymentDetails.receiptImage);
     handleCloseModals();
   };
 
@@ -615,6 +740,21 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                 totalCommission: commission,
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
+
+// Fix: Use generic type argument for reduce to ensure correct type inference.
+        const companyDebts = filteredBookings
+            .filter(b => b.itemType === 'speedboat')
+            .reduce<Record<string, number>>((acc, booking) => {
+                const trip = speedBoatTrips.find(t => t.id === booking.itemId);
+                if (trip) {
+                    const company = trip.company;
+                    if (!acc[company]) {
+                        acc[company] = 0;
+                    }
+                    acc[company] += booking.itemCost || 0;
+                }
+                return acc;
+            }, {});
     
         return {
             totalRevenue,
@@ -629,9 +769,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             totalMonthlySalaries,
             totalSalaryAdvances,
             netProfit,
-            staffPerformance
+            staffPerformance,
+            companyDebts,
         };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff]);
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff, speedBoatTrips]);
 
 
   const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -781,15 +922,20 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             {activeTab === 'boats' && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg shadow-md p-4">
-                        <h3 className="text-lg font-semibold text-slate-800 mb-3">Speed Boat Routes</h3>
-                        <div className="space-y-2">
-                            {speedBoatTrips.map(trip => (
-                                <div key={trip.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50">
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-lg font-semibold text-slate-800">Speed Boat Routes</h3>
+                            {currentUserRole === Role.Admin && (
+                                <button onClick={handleOpenManageTripsModal} className="px-3 py-1.5 text-sm font-semibold text-white bg-slate-600 rounded-md hover:bg-slate-700">Manage Trips</button>
+                            )}
+                        </div>
+                        <div className="space-y-4">
+                            {Object.entries(groupedSpeedBoatTrips).map(([route, trips]) => (
+                                <div key={route} className="flex justify-between items-center p-3 rounded-md bg-slate-50 border">
                                     <div>
-                                        <p className="font-medium text-slate-700">{trip.route}</p>
-                                        <p className="text-sm text-slate-500">{trip.price} THB</p>
+                                        <p className="font-semibold text-slate-800">{route}</p>
+                                        <p className="text-xs text-slate-500">{trips.length} {trips.length > 1 ? 'companies' : 'company'} available</p>
                                     </div>
-                                    <button onClick={() => handleOpenSpeedBoatModal(trip)} className="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Book</button>
+                                    <button onClick={() => handleOpenSpeedBoatModalForRoute(route, trips)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Book</button>
                                 </div>
                             ))}
                         </div>
@@ -867,6 +1013,25 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 </ul>
                             </div>
                         </div>
+                    </div>
+                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Boat Company Payments Due - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <table className="w-full text-sm text-left text-slate-500">
+                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                <tr>
+                                    <th className="px-6 py-3">Company Name</th>
+                                    <th className="px-6 py-3">Amount to Pay</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Object.entries(reportData.companyDebts).map(([company, amount]) => (
+                                    <tr key={company} className="bg-white border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4 font-medium text-slate-900">{company}</td>
+                                        <td className="px-6 py-4 font-bold text-red-600">{currencyFormat(amount)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
                         <div className="flex justify-between items-center p-4 border-b">
@@ -999,7 +1164,23 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         {/* --- Modals --- */}
         <Modal isOpen={isBookingModalOpen} onClose={handleCloseModals} title={`Book: ${selectedActivity?.name}`}>
             <div className="space-y-6">
+                <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Booking Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
                 <CommonFormFields includeDiscount includeFuelAndCaptain includePeopleCount />
+                 {currentUserRole === Role.Admin && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
+                            <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                        <div>
+                            <label htmlFor="hostelCommission" className="block text-sm font-medium text-slate-700">Hostel Commission (THB)</label>
+                            <input type="number" id="hostelCommission" value={hostelCommission} onChange={(e) => setHostelCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                    </div>
+                )}
                 <ExtrasFormFields />
                 <PaymentFormFields />
                 
@@ -1046,6 +1227,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isExternalBookingModalOpen} onClose={handleCloseModals} title={`Book External: ${selectedExternalActivity?.name}`}>
              <div className="space-y-6">
+                <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Booking Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
                 <CommonFormFields includeCommission includeDiscount includePeopleCount />
                 <ExtrasFormFields />
                 <PaymentFormFields />
@@ -1089,9 +1274,30 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             </div>
         </Modal>
 
-         <Modal isOpen={isSpeedBoatModalOpen} onClose={handleCloseModals} title={`Book: ${selectedTrip?.route}`}>
+         <Modal isOpen={isSpeedBoatModalOpen} onClose={handleCloseModals} title={`Book: ${selectedRoute}`}>
              <div className="space-y-6">
-                <CommonFormFields includeCommission includePeopleCount />
+                <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Booking Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
+                <div>
+                    <label htmlFor="company" className="block text-sm font-medium text-slate-700">Company</label>
+                    <select 
+                        id="company" 
+                        value={selectedTrip?.id || ''} 
+                        onChange={(e) => {
+                            const trip = availableTripsForRoute.find(t => t.id === e.target.value);
+                            if (trip) setSelectedTrip(trip);
+                        }} 
+                        required 
+                        className="mt-1 block w-full input-field"
+                    >
+                        {availableTripsForRoute.map(trip => (
+                            <option key={trip.id} value={trip.id}>{trip.company} - {trip.price} THB</option>
+                        ))}
+                    </select>
+                </div>
+                <CommonFormFields includePeopleCount />
                 <PaymentFormFields />
                  {(() => {
                     const numPeople = Number(numberOfPeople) || 1;
@@ -1105,6 +1311,11 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                     <span>Total</span>
                                     <span>{currencyFormat(finalTotal)}</span>
                                 </div>
+                                {selectedTrip && (
+                                    <p className="text-xs text-slate-500 text-right">
+                                        Hostel Profit: {currencyFormat((selectedTrip.price - selectedTrip.cost) * numPeople)}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     );
@@ -1117,6 +1328,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isPrivateTourModalOpen} onClose={handleCloseModals} title="Book Private Tour">
             <div className="space-y-6">
+                 <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Booking Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="tourType" className="block text-sm font-medium text-slate-700">Tour Type</label>
@@ -1140,6 +1355,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isExtraModalOpen} onClose={handleCloseModals} title={`Sell: ${selectedExtra?.name}`}>
             <div className="space-y-6">
+                <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Sale Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
                 <CommonFormFields includeCommission />
                 <PaymentFormFields />
                 <div className="flex justify-end pt-4">
@@ -1150,6 +1369,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
         <Modal isOpen={isTaxiModalOpen} onClose={handleCloseModals} title={`Book Taxi: ${selectedTaxiOption?.name}`}>
              <div className="space-y-6">
+                <div>
+                    <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Booking Date</label>
+                    <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
+                </div>
                 <CommonFormFields includeCommission includePeopleCount />
                 <PaymentFormFields />
                 <div className="flex justify-end pt-4">
@@ -1186,6 +1409,42 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                 onClose={handleCloseModals}
                 initialData={editingPlatformPayment}
             />
+        </Modal>
+
+        <Modal isOpen={isManageTripsModalOpen} onClose={handleCloseModals} title="Manage Speed Boat Trips">
+            <div className="space-y-4">
+                <div className="flex justify-end">
+                    <button onClick={() => setShowTripForm(prev => !prev)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">
+                        {showTripForm ? 'Close Form' : 'Add New Trip'}
+                    </button>
+                </div>
+
+                {showTripForm && (
+                     <div className="p-4 bg-slate-50 rounded-lg border">
+                        <h4 className="text-md font-semibold text-slate-800 mb-3">{editingSpeedBoatTrip ? 'Edit Trip' : 'Add New Trip'}</h4>
+                        <SpeedBoatTripForm 
+                            onSave={handleSaveSpeedBoatTrip}
+                            onClose={() => { setShowTripForm(false); setEditingSpeedBoatTrip(null); }}
+                            initialData={editingSpeedBoatTrip}
+                        />
+                    </div>
+                )}
+               
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                    {speedBoatTrips.map(trip => (
+                        <div key={trip.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm border">
+                            <div>
+                                <p className="font-medium text-slate-800">{trip.route}</p>
+                                <p className="text-xs text-slate-500">{trip.company} - Price: {trip.price} THB, Cost: {trip.cost} THB</p>
+                            </div>
+                            <div className="flex space-x-3">
+                                <button onClick={() => handleEditTrip(trip)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                                <button onClick={() => onDeleteSpeedBoatTrip(trip.id)} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </Modal>
 
          <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>

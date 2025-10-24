@@ -90,6 +90,12 @@ export const GlobeAltIcon: React.FC<{className?: string}> = ({ className }) => (
     </svg>
 );
 
+export const UserPlusIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" />
+    </svg>
+);
+
 export const ReceiptPercentIcon: React.FC<{className?: string}> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || "w-6 h-6"}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-1.5h5.25m-5.25 0h3m-3 0h-1.5m2.25-9h.01M7.5 15h3m-3 0h-1.5m-1.5 0h5.25m0 0h1.5m-5.25 0h-3m-1.5-9H5.25m0 0h1.5M5.25 6H7.5M5.25 6H3M7.5 6H5.25m6.75 0h1.5m-1.5 0h-3m1.5 0h-1.5m-1.5 0H9M12 6h3.75m-3.75 0h-1.5m-1.5 0h-3.75" />

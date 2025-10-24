@@ -32,7 +32,7 @@ export interface Bed {
 
 // Fix: Add Room interface for use in RoomManagement component.
 export interface Room {
-    id: string;
+    id:string;
     name: string;
     condition: EntityCondition;
     maintenanceNotes: string;
@@ -110,6 +110,7 @@ export interface Activity {
 export interface SpeedBoatTrip {
   id: string;
   route: string;
+  company: string;
   price: number;
   cost: number;
 }
@@ -127,6 +128,21 @@ export interface Extra {
 }
 
 export type PaymentMethod = 'Cash' | 'Credit Card' | 'Internet Payment';
+
+export interface WalkInGuest {
+  id: string;
+  guestName: string;
+  roomId: string;
+  bedNumber?: number;
+  checkInDate: string; // YYYY-MM-DD
+  numberOfNights: number;
+  pricePerNight: number;
+  totalPaid: number;
+  paymentMethod: PaymentMethod;
+  nationality?: string;
+  idNumber?: string;
+  notes?: string;
+}
 
 export interface Booking {
   id: string;
@@ -146,6 +162,7 @@ export interface Booking {
   receiptImage?: string; // base64 encoded image
   fuelCost?: number;
   captainCost?: number;
+  itemCost?: number; // Total cost for the hostel (e.g., what to pay the boat company)
 }
 
 export interface ExternalSale {
