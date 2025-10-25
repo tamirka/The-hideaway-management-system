@@ -59,20 +59,106 @@ const TagIcon: React.FC<{className?: string}> = ({ className }) => (
     </svg>
 );
 
+// --- Item Creation Forms ---
+interface ActivityFormProps {
+    onSave: (activity: Omit<Activity, 'id'>) => void;
+    onClose: () => void;
+}
+const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose }) => {
+    const [formData, setFormData] = useState({ name: '', description: '', price: '', imageUrl: '' });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    };
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({ ...formData, price: Number(formData.price) });
+        onClose();
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div><label htmlFor="name" className="block text-sm font-medium text-slate-700">Name</label><input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+            <div><label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label><textarea id="description" value={formData.description} onChange={handleChange} required rows={3} className="mt-1 block w-full input-field" /></div>
+            <div><label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label><input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+            <div><label htmlFor="imageUrl" className="block text-sm font-medium text-slate-700">Image URL</label><input type="text" id="imageUrl" value={formData.imageUrl} onChange={handleChange} required className="mt-1 block w-full input-field" placeholder="https://placehold.co/..." /></div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Activity</button>
+            </div>
+        </form>
+    );
+};
+
+interface ExtraFormProps {
+    onSave: (extra: Omit<Extra, 'id'>) => void;
+    onClose: () => void;
+}
+const ExtraForm: React.FC<ExtraFormProps> = ({ onSave, onClose }) => {
+    const [formData, setFormData] = useState({ name: '', price: '' });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+    };
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({ ...formData, price: Number(formData.price) });
+        onClose();
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div><label htmlFor="name" className="block text-sm font-medium text-slate-700">Extra Name</label><input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+            <div><label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label><input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Extra</button>
+            </div>
+        </form>
+    );
+};
+
+interface TaxiBoatOptionFormProps {
+    onSave: (option: Omit<TaxiBoatOption, 'id'>) => void;
+    onClose: () => void;
+}
+const TaxiBoatOptionForm: React.FC<TaxiBoatOptionFormProps> = ({ onSave, onClose }) => {
+    const [formData, setFormData] = useState({ name: 'One Way' as 'One Way' | 'Round Trip', price: '' });
+    const handleNameChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFormData(prev => ({ ...prev, name: e.target.value as 'One Way' | 'Round Trip' }));
+    };
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, price: e.target.value }));
+    };
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSave({ ...formData, price: Number(formData.price) });
+        onClose();
+    };
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div><label htmlFor="name" className="block text-sm font-medium text-slate-700">Trip Type</label><select id="name" value={formData.name} onChange={handleNameChange} required className="mt-1 block w-full input-field"><option value="One Way">One Way</option><option value="Round Trip">Round Trip</option></select></div>
+            <div><label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label><input type="number" id="price" value={formData.price} onChange={handlePriceChange} required className="mt-1 block w-full input-field" /></div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Option</button>
+            </div>
+        </form>
+    );
+};
+
 // --- Price Management Components (Admin only) ---
 interface EditablePriceItemProps<T extends { id: string; name: string; price: number }> {
   item: T;
   onSave: (item: T) => void;
+  onDelete: (id: string) => void;
   currencySymbol?: string;
 }
 
-// Fix: Reverted to a const arrow function to correctly handle generic props with JSX, which resolves type-checking issues with the 'key' prop in lists.
-// Fix: Reverted to a const arrow function to correctly handle generic props with JSX, which resolves type-checking issues with the 'key' prop in lists.
-const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
+// Fix: Changed to a standard function declaration to correctly handle generic props with JSX, which resolves type-checking issues with the 'key' prop in lists.
+// Fix: Added explicit return type to the generic component.
+function EditablePriceItem<T extends { id: string; name: string; price: number }>({
   item,
   onSave,
+  onDelete,
   currencySymbol = 'THB',
-}: EditablePriceItemProps<T>) => {
+}: EditablePriceItemProps<T>): JSX.Element {
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -92,6 +178,12 @@ const EditablePriceItem = <T extends { id: string; name: string; price: number }
       setIsEditing(true);
       setTimeout(() => inputRef.current?.focus(), 0);
   }
+
+  const handleDelete = () => {
+      if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+          onDelete(item.id);
+      }
+  };
 
   return (
     <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border">
@@ -113,19 +205,23 @@ const EditablePriceItem = <T extends { id: string; name: string; price: number }
         {isEditing ? (
              <button onClick={handleSave} className="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700">Save</button>
         ) : (
-            <button onClick={handleEdit} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+            <>
+                <button onClick={handleEdit} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                <button onClick={handleDelete} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+            </>
         )}
       </div>
     </div>
   );
-};
+}
 
 interface EditableSpeedBoatPriceItemProps {
   trip: SpeedBoatTrip;
   onSave: (trip: SpeedBoatTrip) => void;
+  onDelete: (id: string) => void;
 }
 
-const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({ trip, onSave }) => {
+const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({ trip, onSave, onDelete }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [price, setPrice] = useState(trip.price.toString());
     const [cost, setCost] = useState(trip.cost.toString());
@@ -138,6 +234,12 @@ const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({
             setIsEditing(false);
         } else {
             alert('Please enter valid price and cost values.');
+        }
+    };
+
+    const handleDelete = () => {
+        if (window.confirm(`Are you sure you want to delete the trip "${trip.route}" by ${trip.company}?`)) {
+            onDelete(trip.id);
         }
     };
 
@@ -169,7 +271,10 @@ const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({
                 {isEditing ? (
                     <button onClick={handleSave} className="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700">Save</button>
                 ) : (
-                    <button onClick={() => setIsEditing(true)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                    <>
+                        <button onClick={() => setIsEditing(true)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                        <button onClick={handleDelete} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                    </>
                 )}
             </div>
         </div>
@@ -181,44 +286,104 @@ interface PriceManagementProps {
     speedBoatTrips: SpeedBoatTrip[];
     taxiBoatOptions: TaxiBoatOption[];
     extras: Extra[];
+    onAddActivity: (activity: Omit<Activity, 'id'>) => void;
     onUpdateActivity: (activity: Activity) => void;
+    onDeleteActivity: (id: string) => void;
+    onAddSpeedBoatTrip: (trip: Omit<SpeedBoatTrip, 'id'>) => void;
     onUpdateSpeedBoatTrip: (trip: SpeedBoatTrip) => void;
+    onDeleteSpeedBoatTrip: (id: string) => void;
+    onAddTaxiBoatOption: (option: Omit<TaxiBoatOption, 'id'>) => void;
     onUpdateTaxiBoatOption: (option: TaxiBoatOption) => void;
+    onDeleteTaxiBoatOption: (id: string) => void;
+    onAddExtra: (extra: Omit<Extra, 'id'>) => void;
     onUpdateExtra: (extra: Extra) => void;
+    onDeleteExtra: (id: string) => void;
 }
 
-const PriceManagement: React.FC<PriceManagementProps> = ({ activities, speedBoatTrips, taxiBoatOptions, extras, onUpdateActivity, onUpdateSpeedBoatTrip, onUpdateTaxiBoatOption, onUpdateExtra }) => {
+const PriceManagement: React.FC<PriceManagementProps> = ({ activities, speedBoatTrips, taxiBoatOptions, extras, onAddActivity, onUpdateActivity, onDeleteActivity, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onAddTaxiBoatOption, onUpdateTaxiBoatOption, onDeleteTaxiBoatOption, onAddExtra, onUpdateExtra, onDeleteExtra }) => {
+    const [modal, setModal] = useState<'activity' | 'speedboat' | 'taxi' | 'extra' | null>(null);
+
+    const handleSaveActivity = (activity: Omit<Activity, 'id'>) => {
+        onAddActivity(activity);
+        setModal(null);
+    }
+    const handleSaveExtra = (extra: Omit<Extra, 'id'>) => {
+        onAddExtra(extra);
+        setModal(null);
+    }
+    const handleSaveTaxi = (option: Omit<TaxiBoatOption, 'id'>) => {
+        onAddTaxiBoatOption(option);
+        setModal(null);
+    }
+    const handleSaveSpeedboat = (trip: Omit<SpeedBoatTrip, 'id'>) => {
+        onAddSpeedBoatTrip(trip);
+        setModal(null);
+    }
+
     return (
         <div className="space-y-8">
+            <Modal isOpen={modal === 'activity'} onClose={() => setModal(null)} title="Add New Activity">
+                <ActivityForm onSave={handleSaveActivity} onClose={() => setModal(null)} />
+            </Modal>
+            <Modal isOpen={modal === 'speedboat'} onClose={() => setModal(null)} title="Add New Speed Boat Trip">
+                <SpeedBoatTripForm onSave={handleSaveSpeedboat} onClose={() => setModal(null)} />
+            </Modal>
+            <Modal isOpen={modal === 'taxi'} onClose={() => setModal(null)} title="Add New Taxi Boat Option">
+                <TaxiBoatOptionForm onSave={handleSaveTaxi} onClose={() => setModal(null)} />
+            </Modal>
+            <Modal isOpen={modal === 'extra'} onClose={() => setModal(null)} title="Add New Extra">
+                <ExtraForm onSave={handleSaveExtra} onClose={() => setModal(null)} />
+            </Modal>
+
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Activity Prices</h2>
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 className="text-xl font-bold text-slate-800">Activity Prices</h2>
+                    <button onClick={() => setModal('activity')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
+                        <PlusIcon className="w-4 h-4 mr-1"/> Add Activity
+                    </button>
+                </div>
                 <div className="space-y-3">
                     {activities.map(activity => (
-                        <EditablePriceItem key={activity.id} item={activity} onSave={onUpdateActivity} />
+                        <EditablePriceItem key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} />
                     ))}
                 </div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Speed Boat Prices</h2>
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 className="text-xl font-bold text-slate-800">Speed Boat Prices</h2>
+                    <button onClick={() => setModal('speedboat')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
+                        <PlusIcon className="w-4 h-4 mr-1"/> Add Speed Boat
+                    </button>
+                </div>
                 <div className="space-y-3">
                     {speedBoatTrips.map(trip => (
-                        <EditableSpeedBoatPriceItem key={trip.id} trip={trip} onSave={onUpdateSpeedBoatTrip} />
+                        <EditableSpeedBoatPriceItem key={trip.id} trip={trip} onSave={onUpdateSpeedBoatTrip} onDelete={onDeleteSpeedBoatTrip} />
                     ))}
                 </div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Taxi Boat Prices</h2>
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 className="text-xl font-bold text-slate-800">Taxi Boat Prices</h2>
+                    <button onClick={() => setModal('taxi')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
+                        <PlusIcon className="w-4 h-4 mr-1"/> Add Taxi Option
+                    </button>
+                </div>
                 <div className="space-y-3">
                     {taxiBoatOptions.map(option => (
-                        <EditablePriceItem key={option.id} item={option} onSave={onUpdateTaxiBoatOption} />
+                        <EditablePriceItem key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} />
                     ))}
                 </div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
-                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Extras Prices</h2>
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 className="text-xl font-bold text-slate-800">Extras Prices</h2>
+                    <button onClick={() => setModal('extra')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
+                        <PlusIcon className="w-4 h-4 mr-1"/> Add Extra
+                    </button>
+                </div>
                 <div className="space-y-3">
                     {extras.map(extra => (
-                        <EditablePriceItem key={extra.id} item={extra} onSave={onUpdateExtra} />
+                        <EditablePriceItem key={extra.id} item={extra} onSave={onUpdateExtra} onDelete={onDeleteExtra} />
                     ))}
                 </div>
             </div>
@@ -257,9 +422,15 @@ interface ActivitiesManagementProps {
   onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
   onUpdateSpeedBoatTrip: (updatedTrip: SpeedBoatTrip) => void;
   onDeleteSpeedBoatTrip: (tripId: string) => void;
+  onAddActivity: (newActivity: Omit<Activity, 'id'>) => void;
   onUpdateActivity: (updatedActivity: Activity) => void;
+  onDeleteActivity: (activityId: string) => void;
+  onAddTaxiBoatOption: (newOption: Omit<TaxiBoatOption, 'id'>) => void;
   onUpdateTaxiBoatOption: (updatedOption: TaxiBoatOption) => void;
+  onDeleteTaxiBoatOption: (optionId: string) => void;
+  onAddExtra: (newExtra: Omit<Extra, 'id'>) => void;
   onUpdateExtra: (updatedExtra: Extra) => void;
+  onDeleteExtra: (extraId: string) => void;
   currentUserRole: Role;
 }
 
@@ -533,7 +704,7 @@ const initialPrivateTourState = {
 };
 
 export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props) => {
-  const { activities, speedBoatTrips, taxiBoatOptions, extras, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, rooms, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onUpdateActivity, onUpdateTaxiBoatOption, onUpdateExtra, currentUserRole } = props;
+  const { activities, speedBoatTrips, taxiBoatOptions, extras, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, rooms, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onAddActivity, onUpdateActivity, onDeleteActivity, onAddTaxiBoatOption, onUpdateTaxiBoatOption, onDeleteTaxiBoatOption, onAddExtra, onUpdateExtra, onDeleteExtra, currentUserRole } = props;
   const [activeTab, setActiveTab] = useState<SubView>('tours');
   
   // Modal States
@@ -576,7 +747,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const [commission, setCommission] = useState<string>('');
   const [discount, setDiscount] = useState<string>('');
-  const [selectedExtras, setSelectedExtras] = useState<any>(initialExtrasState);
+  // Fix: Removed explicit 'any' type to allow for better type inference.
+  const [selectedExtras, setSelectedExtras] = useState(initialExtrasState);
   const [paymentDetails, setPaymentDetails] = useState(initialPaymentState);
   const [privateTourDetails, setPrivateTourDetails] = useState(initialPrivateTourState);
   const [fuelCost, setFuelCost] = useState('');
@@ -650,7 +822,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   }, [selectedMonth, reportGranularity]);
 
 
-  const calculateExtras = (currentExtras: any): { list: Omit<Extra, 'id'>[], total: number } => {
+  // Fix: Updated the `calculateExtras` function to accept a more specific type.
+  const calculateExtras = (currentExtras: Record<string, any>): { list: Omit<Extra, 'id'>[], total: number } => {
     const list: Omit<Extra, 'id'>[] = [];
     let total = 0;
 
@@ -700,6 +873,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setIsExternalBookingModalOpen(true);
   };
   
+  // Fix: Correctly typed the initial value for the reduce function to resolve type inference issues.
   const groupedSpeedBoatTrips = useMemo(() => {
     return speedBoatTrips.reduce((acc, trip) => {
         const { route } = trip;
@@ -708,7 +882,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         }
         acc[route].push(trip);
         return acc;
-    // Fix: Explicitly type the initial value for the accumulator to ensure correct type inference.
+    // Fix: Explicitly type the accumulator in the reduce callback to ensure correct type inference.
     }, {} as Record<string, SpeedBoatTrip[]>);
   }, [speedBoatTrips]);
 
@@ -1591,10 +1765,18 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                     speedBoatTrips={speedBoatTrips}
                     taxiBoatOptions={taxiBoatOptions}
                     extras={extras}
+                    onAddActivity={onAddActivity}
                     onUpdateActivity={onUpdateActivity}
+                    onDeleteActivity={onDeleteActivity}
+                    onAddSpeedBoatTrip={onAddSpeedBoatTrip}
                     onUpdateSpeedBoatTrip={onUpdateSpeedBoatTrip}
+                    onDeleteSpeedBoatTrip={onDeleteSpeedBoatTrip}
+                    onAddTaxiBoatOption={onAddTaxiBoatOption}
                     onUpdateTaxiBoatOption={onUpdateTaxiBoatOption}
+                    onDeleteTaxiBoatOption={onDeleteTaxiBoatOption}
+                    onAddExtra={onAddExtra}
                     onUpdateExtra={onUpdateExtra}
+                    onDeleteExtra={onDeleteExtra}
                 />
             )}
         </div>
@@ -1626,7 +1808,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                     const numPeople = Number(numberOfPeople) || 1;
                     const baseTotal = (selectedActivity?.price || 0) * numPeople;
                     const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras);
-                    const finalTotal = baseTotal + extrasTotal - (Number(discount) || 0);
+                    // Fix: Explicitly type finalTotal to ensure it's a number.
+                    const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
 
                     return (
                         <div className="mt-6 p-4 bg-slate-50 rounded-lg">
@@ -1645,13 +1828,12 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 {(Number(discount) || 0) > 0 && (
                                 <div className="flex justify-between text-red-600">
                                     <span>Discount</span>
-                                    <span>-{currencyFormat(Number(discount))}</span>
+                                    <span>-{currencyFormat(Number(discount) || 0)}</span>
                                 </div>
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    {/* Fix: Explicitly cast finalTotal to a number to ensure type compatibility with currencyFormat. */}
-                                    <span>{currencyFormat(Number(finalTotal))}</span>
+                                    <span>{currencyFormat(finalTotal)}</span>
                                 </div>
                             </div>
                         </div>
@@ -1677,7 +1859,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                     const numPeople = Number(numberOfPeople) || 1;
                     const baseTotal = (selectedExternalActivity?.price || 0) * numPeople;
                     const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras);
-                    const finalTotal = baseTotal + extrasTotal - (Number(discount) || 0);
+                    // Fix: Explicitly type finalTotal to ensure it's a number.
+                    const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
 
                     return (
                         <div className="mt-6 p-4 bg-slate-50 rounded-lg">
@@ -1696,13 +1879,12 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 {(Number(discount) || 0) > 0 && (
                                 <div className="flex justify-between text-red-600">
                                     <span>Discount</span>
-                                    <span>-{currencyFormat(Number(discount))}</span>
+                                    <span>-{currencyFormat(Number(discount) || 0)}</span>
                                 </div>
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    {/* Fix: Explicitly cast finalTotal to a number to ensure type compatibility with currencyFormat. */}
-                                    <span>{currencyFormat(Number(finalTotal))}</span>
+                                    <span>{currencyFormat(finalTotal)}</span>
                                 </div>
                             </div>
                         </div>

@@ -1,3 +1,4 @@
+
 // Fix: Create the UtilitiesManagement component.
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { UtilityRecord } from '../types';
@@ -179,6 +180,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
     const [editingRecord, setEditingRecord] = useState<UtilityRecord | null>(null);
     const [viewingBill, setViewingBill] = useState<string | null>(null);
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [selectedDay, setSelectedDay] = useState<string>(''); // YYYY-MM-DD
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [newCategory, setNewCategory] = useState('');
 
@@ -204,10 +206,42 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         }
     };
 
+    const handleDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const day = e.target.value;
+        setSelectedDay(day);
+        if (day) {
+            setSelectedMonth(day.substring(0, 7));
+        }
+    };
+
+    useEffect(() => {
+        // When month is changed manually by the month picker, clear the specific day filter.
+        setSelectedDay('');
+    }, [selectedMonth]);
+
+
     const filteredRecords = useMemo(() => {
+        if (selectedDay) {
+            return records.filter(r => r.date === selectedDay);
+        }
         if (!selectedMonth) return records;
         return records.filter(r => r.date.startsWith(selectedMonth));
-    }, [records, selectedMonth]);
+    }, [records, selectedMonth, selectedDay]);
+    
+    const reportPeriodTitle = useMemo(() => {
+        if (selectedDay) {
+            try {
+                return new Date(selectedDay + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            } catch {
+                return 'Invalid Date';
+            }
+        }
+        try {
+            return new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+        } catch {
+            return 'Invalid Date';
+        }
+    }, [selectedMonth, selectedDay]);
 
     const analyticsData = useMemo(() => {
         const totalExpenses = filteredRecords.reduce((sum, r) => sum + r.cost, 0);
@@ -231,19 +265,22 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         const categoryChartData = Object.entries(categoryTotals).map(([category, total]) => ({
             label: category,
             value: total
-// Fix: Explicitly cast values to Number to prevent TypeScript errors in the sort callback.
         })).sort((a, b) => Number(b.value) - Number(a.value));
 
         const topCategory = categoryChartData[0] ? `${categoryChartData[0].label}` : 'N/A';
         
-        // Fix: Use explicit array index access in the sort callback to avoid type inference issues.
-// Fix: Explicitly cast values to Number to prevent TypeScript errors in the sort callback.
         const highestDayEntry = Object.entries(dailyTotals).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
-        const highestDay = highestDayEntry ? `${selectedMonth}-${String(highestDayEntry[0]).padStart(2, '0')}` : 'N/A';
+        
+        let highestDay: string;
+        if (selectedDay) {
+            highestDay = selectedDay;
+        } else {
+             highestDay = highestDayEntry ? `${selectedMonth}-${String(highestDayEntry[0]).padStart(2, '0')}` : 'N/A';
+        }
 
 
         return { totalExpenses, dailyChartData, categoryChartData, topCategory, highestDay };
-    }, [filteredRecords, selectedMonth]);
+    }, [filteredRecords, selectedMonth, selectedDay]);
 
     const currencyFormat = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -264,15 +301,32 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
 
             {/* Analytics Dashboard */}
             <div className="space-y-6">
-                <div className="bg-white p-4 rounded-lg shadow-sm flex items-center">
-                    <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Filter by Month:</label>
-                    <input 
-                        type="month" 
-                        id="month-filter"
-                        value={selectedMonth}
-                        onChange={e => setSelectedMonth(e.target.value)}
-                        className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
-                    />
+                <div className="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-x-6 gap-y-4">
+                    <div>
+                        <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Month:</label>
+                        <input 
+                            type="month" 
+                            id="month-filter"
+                            value={selectedMonth}
+                            onChange={e => setSelectedMonth(e.target.value)}
+                            className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="day-filter" className="text-sm font-medium text-slate-600">Specific Day:</label>
+                        <input 
+                            type="date" 
+                            id="day-filter"
+                            value={selectedDay}
+                            onChange={handleDayChange}
+                            className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                        />
+                    </div>
+                    {selectedDay && (
+                        <button onClick={() => setSelectedDay('')} className="text-sm text-blue-600 hover:underline">
+                            View Full Month
+                        </button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -283,7 +337,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white p-4 rounded-lg shadow-sm">
-                        <SimpleBarChart data={analyticsData.dailyChartData} title={`Daily Expenses for ${new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}`} color="#3b82f6" />
+                        <SimpleBarChart data={analyticsData.dailyChartData} title={`Daily Expenses for ${reportPeriodTitle}`} color="#3b82f6" />
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                          <h3 className="text-center font-semibold text-slate-600 mb-2">Expenses by Category</h3>
@@ -310,7 +364,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
             </div>
 
             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Expense Records for {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Expense Records for {reportPeriodTitle}</h3>
                 <table className="w-full text-sm text-left text-slate-500">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>

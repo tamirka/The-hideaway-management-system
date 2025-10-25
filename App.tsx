@@ -470,16 +470,26 @@ const App: React.FC = () => {
   const handleUpdateSpeedBoatTrip = (updatedTrip: SpeedBoatTrip) => setSpeedBoatTrips(speedBoatTrips.map(t => t.id === updatedTrip.id ? updatedTrip : t));
   const handleDeleteSpeedBoatTrip = (tripId: string) => setSpeedBoatTrips(speedBoatTrips.filter(t => t.id !== tripId));
 
-  // CRUD Handlers for Activities/Extras Pricing
-    const handleUpdateActivity = (updatedActivity: Activity) => {
-        setActivities(activities.map(a => a.id === updatedActivity.id ? updatedActivity : a));
-    };
-    const handleUpdateTaxiBoatOption = (updatedOption: TaxiBoatOption) => {
-        setTaxiBoatOptions(taxiBoatOptions.map(o => o.id === updatedOption.id ? updatedOption : o));
-    };
-    const handleUpdateExtra = (updatedExtra: Extra) => {
-        setExtras(extras.map(e => e.id === updatedExtra.id ? updatedExtra : e));
-    };
+  // CRUD Handlers for Activities
+  const handleAddActivity = (newActivity: Omit<Activity, 'id'>) => setActivities([...activities, { ...newActivity, id: generateId() }]);
+  const handleUpdateActivity = (updatedActivity: Activity) => {
+      setActivities(activities.map(a => a.id === updatedActivity.id ? updatedActivity : a));
+  };
+  const handleDeleteActivity = (activityId: string) => setActivities(activities.filter(a => a.id !== activityId));
+
+  // CRUD Handlers for Taxi Boat Options
+  const handleAddTaxiBoatOption = (newOption: Omit<TaxiBoatOption, 'id'>) => setTaxiBoatOptions([...taxiBoatOptions, { ...newOption, id: generateId() }]);
+  const handleUpdateTaxiBoatOption = (updatedOption: TaxiBoatOption) => {
+      setTaxiBoatOptions(taxiBoatOptions.map(o => o.id === updatedOption.id ? updatedOption : o));
+  };
+  const handleDeleteTaxiBoatOption = (optionId: string) => setTaxiBoatOptions(taxiBoatOptions.filter(o => o.id !== optionId));
+  
+  // CRUD Handlers for Extras
+  const handleAddExtra = (newExtra: Omit<Extra, 'id'>) => setExtras([...extras, { ...newExtra, id: generateId() }]);
+  const handleUpdateExtra = (updatedExtra: Extra) => {
+      setExtras(extras.map(e => e.id === updatedExtra.id ? updatedExtra : e));
+  };
+  const handleDeleteExtra = (extraId: string) => setExtras(extras.filter(e => e.id !== extraId));
 
   // Handler for updating a booking
   const handleUpdateBooking = (updatedBooking: Booking) => {
@@ -567,9 +577,15 @@ const App: React.FC = () => {
                     onAddSpeedBoatTrip={handleAddSpeedBoatTrip}
                     onUpdateSpeedBoatTrip={handleUpdateSpeedBoatTrip}
                     onDeleteSpeedBoatTrip={handleDeleteSpeedBoatTrip}
+                    onAddActivity={handleAddActivity}
                     onUpdateActivity={handleUpdateActivity}
+                    onDeleteActivity={handleDeleteActivity}
+                    onAddTaxiBoatOption={handleAddTaxiBoatOption}
                     onUpdateTaxiBoatOption={handleUpdateTaxiBoatOption}
+                    onDeleteTaxiBoatOption={handleDeleteTaxiBoatOption}
+                    onAddExtra={handleAddExtra}
                     onUpdateExtra={handleUpdateExtra}
+                    onDeleteExtra={handleDeleteExtra}
                     currentUserRole={currentUserRole}
                  />;
       default:
