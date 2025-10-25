@@ -19,18 +19,13 @@ const WalkInForm: React.FC<WalkInFormProps> = ({ rooms, onSubmit, onClose }) => 
   const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split('T')[0]);
   const [numberOfNights, setNumberOfNights] = useState('1');
   const [pricePerNight, setPricePerNight] = useState('');
-  const [totalPaid, setTotalPaid] = useState('0');
+  const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Cash');
   const [notes, setNotes] = useState('');
 
   const selectedRoom = rooms.find(r => r.id === roomId);
   const isDorm = selectedRoom && selectedRoom.beds.length > 1;
-
-  useEffect(() => {
-    const nights = Number(numberOfNights) || 0;
-    const price = Number(pricePerNight) || 0;
-    setTotalPaid((nights * price).toString());
-  }, [numberOfNights, pricePerNight]);
+  const totalCost = (Number(numberOfNights) || 0) * (Number(pricePerNight) || 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +42,7 @@ const WalkInForm: React.FC<WalkInFormProps> = ({ rooms, onSubmit, onClose }) => 
       checkInDate,
       numberOfNights: Number(numberOfNights),
       pricePerNight: Number(pricePerNight),
-      totalPaid: Number(totalPaid),
+      amountPaid: Number(amountPaid) || 0,
       paymentMethod,
       notes,
     });
@@ -104,17 +99,23 @@ const WalkInForm: React.FC<WalkInFormProps> = ({ rooms, onSubmit, onClose }) => 
             <input type="number" id="pricePerNight" value={pricePerNight} onChange={e => setPricePerNight(e.target.value)} required className="mt-1 block w-full input-field" />
         </div>
         <div>
-            <label htmlFor="totalPaid" className="block text-sm font-medium text-slate-700">Total Paid (THB)</label>
-            <input type="number" id="totalPaid" value={totalPaid} onChange={e => setTotalPaid(e.target.value)} required className="mt-1 block w-full input-field" />
+            <label className="block text-sm font-medium text-slate-700">Total Cost</label>
+            <input type="text" value={`฿${totalCost.toLocaleString()}`} disabled className="mt-1 block w-full input-field bg-slate-100" />
         </div>
       </div>
-      <div>
-        <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">Payment Method</label>
-        <select id="paymentMethod" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)} className="mt-1 block w-full input-field">
-            <option>Cash</option>
-            <option>Credit Card</option>
-            <option>Internet Payment</option>
-        </select>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label htmlFor="amountPaid" className="block text-sm font-medium text-slate-700">Amount Paid / Deposit (THB)</label>
+            <input type="number" id="amountPaid" value={amountPaid} onChange={e => setAmountPaid(e.target.value)} required className="mt-1 block w-full input-field" />
+        </div>
+        <div>
+            <label htmlFor="paymentMethod" className="block text-sm font-medium text-slate-700">Payment Method</label>
+            <select id="paymentMethod" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as PaymentMethod)} className="mt-1 block w-full input-field">
+                <option>Cash</option>
+                <option>Credit Card</option>
+                <option>Internet Payment</option>
+            </select>
+        </div>
       </div>
       <div>
         <label htmlFor="notes" className="block text-sm font-medium text-slate-700">Notes</label>
@@ -142,7 +143,7 @@ const WalkInManagement: React.FC<WalkInManagementProps> = ({ rooms, walkInGuests
   const [isModalOpen, setIsModalOpen] = useState(false);
   const roomMap = new Map(rooms.map(r => [r.id, r.name]));
 
-  const totalWalkInRevenue = walkInGuests.reduce((sum, guest) => sum + guest.totalPaid, 0);
+  const totalWalkInRevenue = walkInGuests.reduce((sum, guest) => sum + guest.amountPaid, 0);
 
   return (
     <div>
@@ -159,45 +160,58 @@ const WalkInManagement: React.FC<WalkInManagementProps> = ({ rooms, walkInGuests
             <CurrencyDollarIcon className="w-8 h-8"/>
         </div>
         <div>
-            <h4 className="text-sm font-medium text-slate-500">Total Revenue from Walk-ins</h4>
+            <h4 className="text-sm font-medium text-slate-500">Total Paid by Walk-ins</h4>
             <p className="text-3xl font-semibold text-slate-800 mt-1">฿{totalWalkInRevenue.toLocaleString()}</p>
         </div>
     </div>
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {walkInGuests.map(guest => (
-          <div key={guest.id} className="bg-white rounded-lg shadow-md flex flex-col">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold text-slate-800">{guest.guestName}</h3>
-              <p className="text-sm text-slate-500">{guest.nationality || 'N/A'}</p>
-            </div>
-            <div className="p-4 space-y-3 flex-grow text-sm">
-                <div className="flex items-center">
-                    <BedIcon className="w-4 h-4 mr-2 text-slate-400" />
-                    <span className="font-semibold text-slate-600 mr-2">Room:</span>
-                    <span>{roomMap.get(guest.roomId) || 'N/A'} {guest.bedNumber ? `(Bed ${guest.bedNumber})` : ''}</span>
-                </div>
-                <div className="flex items-center">
-                    <CalendarDaysIcon className="w-4 h-4 mr-2 text-slate-400" />
-                    <span className="font-semibold text-slate-600 mr-2">Stay:</span>
-                    <span>{guest.checkInDate} for {guest.numberOfNights} night(s)</span>
-                </div>
-                 <div className="flex items-center">
-                    <CurrencyDollarIcon className="w-4 h-4 mr-2 text-slate-400" />
-                    <span className="font-semibold text-slate-600 mr-2">Paid:</span>
-                    <span className="font-bold text-green-600">฿{guest.totalPaid.toLocaleString()}</span>
-                    <span className="text-slate-500 ml-1">({guest.paymentMethod})</span>
-                </div>
-                {guest.notes && (
-                    <div className="pt-2 border-t mt-2">
-                        <p className="font-semibold text-slate-600 text-xs">Notes:</p>
-                        <p className="text-slate-700 text-sm whitespace-pre-wrap">{guest.notes}</p>
+        {walkInGuests.map(guest => {
+            const totalCost = guest.pricePerNight * guest.numberOfNights;
+            const remainingBalance = totalCost - guest.amountPaid;
+
+            return (
+                <div key={guest.id} className="bg-white rounded-lg shadow-md flex flex-col">
+                    <div className="p-4 border-b">
+                    <h3 className="text-lg font-semibold text-slate-800">{guest.guestName}</h3>
+                    <p className="text-sm text-slate-500">{guest.nationality || 'N/A'}</p>
                     </div>
-                )}
-            </div>
-          </div>
-        ))}
+                    <div className="p-4 space-y-3 flex-grow text-sm">
+                        <div className="flex items-center">
+                            <BedIcon className="w-4 h-4 mr-2 text-slate-400" />
+                            <span className="font-semibold text-slate-600 mr-2">Room:</span>
+                            <span>{roomMap.get(guest.roomId) || 'N/A'} {guest.bedNumber ? `(Bed ${guest.bedNumber})` : ''}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <CalendarDaysIcon className="w-4 h-4 mr-2 text-slate-400" />
+                            <span className="font-semibold text-slate-600 mr-2">Stay:</span>
+                            <span>{guest.checkInDate} for {guest.numberOfNights} night(s)</span>
+                        </div>
+                        <div className="pt-2 border-t mt-2 space-y-1 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-slate-600">Total Cost ({guest.paymentMethod}):</span>
+                                <span className="font-medium text-slate-800">฿{totalCost.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-600">Amount Paid:</span>
+                                <span className="font-medium text-green-600">฿{guest.amountPaid.toLocaleString()}</span>
+                            </div>
+                            <div className={`flex justify-between font-bold ${remainingBalance > 0 ? 'text-red-600' : 'text-slate-800'}`}>
+                                <span>Balance:</span>
+                                <span>฿{remainingBalance.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        {guest.notes && (
+                            <div className="pt-2 border-t mt-2">
+                                <p className="font-semibold text-slate-600 text-xs">Notes:</p>
+                                <p className="text-slate-700 text-sm whitespace-pre-wrap">{guest.notes}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )
+        })}
       </div>
       {walkInGuests.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">

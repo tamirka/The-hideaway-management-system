@@ -93,6 +93,17 @@ const MOCK_TAXI_BOAT_OPTIONS: TaxiBoatOption[] = [
     { id: 'taxi2', name: 'Round Trip', price: 350 },
 ];
 
+const MOCK_EXTRAS_DATA: Extra[] = [
+    { id: 'fruits', name: 'Fruits set', price: 100 },
+    { id: 'veggie', name: 'Veggie option', price: 150 },
+    { id: 'lunch', name: 'Lunch set', price: 150 },
+    { id: 'musli', name: 'Musli', price: 50 },
+    { id: 'snorkel', name: 'Snorkel', price: 50 },
+    { id: 'gopro', name: 'Go pro (per day)', price: 600 },
+    { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 200 },
+    { id: 'paddle_day', name: 'Paddle board (per day)', price: 600 },
+];
+
 
 const generateBeds = (roomId: string, count: number): Bed[] => {
     return Array.from({ length: count }, (_, i) => ({
@@ -160,8 +171,8 @@ const MOCK_ROOMS_DATA: Room[] = [
 ];
 
 const MOCK_WALK_IN_GUESTS_DATA: WalkInGuest[] = [
-    { id: 'walkin1', guestName: 'Alex Ray', roomId: 'bungalow1', checkInDate: '2024-07-28', numberOfNights: 2, pricePerNight: 500, totalPaid: 1000, paymentMethod: 'Cash', nationality: 'USA' },
-    { id: 'walkin2', guestName: 'Mia Wong', roomId: 'room2', bedNumber: 2, checkInDate: '2024-07-29', numberOfNights: 3, pricePerNight: 250, totalPaid: 750, paymentMethod: 'Credit Card', nationality: 'Canada' },
+    { id: 'walkin1', guestName: 'Alex Ray', roomId: 'bungalow1', checkInDate: '2024-07-28', numberOfNights: 2, pricePerNight: 500, amountPaid: 1000, paymentMethod: 'Cash', nationality: 'USA' },
+    { id: 'walkin2', guestName: 'Mia Wong', roomId: 'room2', bedNumber: 2, checkInDate: '2024-07-29', numberOfNights: 3, pricePerNight: 250, amountPaid: 500, paymentMethod: 'Credit Card', nationality: 'Canada' },
 ];
 
 
@@ -188,9 +199,10 @@ const App: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>(MOCK_ROOMS_DATA);
   const [absences, setAbsences] = useState<Absence[]>(MOCK_ABSENCES_DATA);
   const [salaryAdvances, setSalaryAdvances] = useState<SalaryAdvance[]>(MOCK_SALARY_ADVANCES_DATA);
-  const [activities] = useState<Activity[]>(MOCK_ACTIVITIES_DATA);
+  const [activities, setActivities] = useState<Activity[]>(MOCK_ACTIVITIES_DATA);
   const [speedBoatTrips, setSpeedBoatTrips] = useState<SpeedBoatTrip[]>(MOCK_SPEEDBOAT_DATA);
-  const [taxiBoatOptions] = useState<TaxiBoatOption[]>(MOCK_TAXI_BOAT_OPTIONS);
+  const [taxiBoatOptions, setTaxiBoatOptions] = useState<TaxiBoatOption[]>(MOCK_TAXI_BOAT_OPTIONS);
+  const [extras, setExtras] = useState<Extra[]>(MOCK_EXTRAS_DATA);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [externalSales, setExternalSales] = useState<ExternalSale[]>(MOCK_EXTERNAL_SALES_DATA);
   const [platformPayments, setPlatformPayments] = useState<PlatformPayment[]>(MOCK_PLATFORM_PAYMENTS_DATA);
@@ -446,6 +458,16 @@ const App: React.FC = () => {
   const handleUpdateSpeedBoatTrip = (updatedTrip: SpeedBoatTrip) => setSpeedBoatTrips(speedBoatTrips.map(t => t.id === updatedTrip.id ? updatedTrip : t));
   const handleDeleteSpeedBoatTrip = (tripId: string) => setSpeedBoatTrips(speedBoatTrips.filter(t => t.id !== tripId));
 
+  // CRUD Handlers for Activities/Extras Pricing
+    const handleUpdateActivity = (updatedActivity: Activity) => {
+        setActivities(activities.map(a => a.id === updatedActivity.id ? updatedActivity : a));
+    };
+    const handleUpdateTaxiBoatOption = (updatedOption: TaxiBoatOption) => {
+        setTaxiBoatOptions(taxiBoatOptions.map(o => o.id === updatedOption.id ? updatedOption : o));
+    };
+    const handleUpdateExtra = (updatedExtra: Extra) => {
+        setExtras(extras.map(e => e.id === updatedExtra.id ? updatedExtra : e));
+    };
 
   // Handler for updating a booking
   const handleUpdateBooking = (updatedBooking: Booking) => {
@@ -503,6 +525,7 @@ const App: React.FC = () => {
                     activities={activities} 
                     speedBoatTrips={speedBoatTrips} 
                     taxiBoatOptions={taxiBoatOptions}
+                    extras={extras}
                     staff={staff} 
                     bookings={bookings} 
                     externalSales={externalSales}
@@ -525,6 +548,9 @@ const App: React.FC = () => {
                     onAddSpeedBoatTrip={handleAddSpeedBoatTrip}
                     onUpdateSpeedBoatTrip={handleUpdateSpeedBoatTrip}
                     onDeleteSpeedBoatTrip={handleDeleteSpeedBoatTrip}
+                    onUpdateActivity={handleUpdateActivity}
+                    onUpdateTaxiBoatOption={handleUpdateTaxiBoatOption}
+                    onUpdateExtra={handleUpdateExtra}
                     currentUserRole={currentUserRole}
                  />;
       default:

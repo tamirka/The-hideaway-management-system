@@ -59,33 +59,175 @@ const TagIcon: React.FC<{className?: string}> = ({ className }) => (
     </svg>
 );
 
+// --- Price Management Components (Admin only) ---
+interface EditablePriceItemProps<T extends { id: string; name: string; price: number }> {
+  item: T;
+  onSave: (item: T) => void;
+  currencySymbol?: string;
+}
 
-const TOUR_EXTRAS_LIST: Extra[] = [
-    { id: 'fruits', name: 'Fruits set', price: 100 },
-    { id: 'veggie', name: 'Veggie option', price: 150 },
-    { id: 'lunch', name: 'Lunch set', price: 150 },
-    { id: 'musli', name: 'Musli', price: 50 },
-    { id: 'snorkel', name: 'Snorkel', price: 50 },
-    { id: 'gopro', name: 'Go pro (per day)', price: 600 },
-    { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 200 },
-    { id: 'paddle_day', name: 'Paddle board (per day)', price: 600 },
-];
+// Fix: Changed component from a const arrow function to a function declaration
+// to resolve issues with generic components in JSX.
+function EditablePriceItem<T extends { id: string; name: string; price: number }>({ item, onSave, currencySymbol = 'THB' }: EditablePriceItemProps<T>) {
+  const [price, setPrice] = useState(item.price.toString());
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-const TOUR_EXTRAS = {
-    simple: TOUR_EXTRAS_LIST.filter(e => !e.id.startsWith('paddle')),
-    special: {
-        paddleboard: {
-            hour: TOUR_EXTRAS_LIST.find(e => e.id === 'paddle_hour')!,
-            day: TOUR_EXTRAS_LIST.find(e => e.id === 'paddle_day')!,
-        },
-    },
+  const handleSave = () => {
+    const newPrice = Number(price);
+    if (!isNaN(newPrice) && newPrice >= 0) {
+      onSave({ ...item, price: newPrice });
+      setIsEditing(false);
+    } else {
+      alert('Please enter a valid price.');
+      setPrice(item.price.toString()); // Revert on invalid input
+    }
+  };
+  
+  const handleEdit = () => {
+      setIsEditing(true);
+      setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  return (
+    <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg border">
+      <span className="text-sm font-medium text-slate-800">{item.name}</span>
+      <div className="flex items-center space-x-2">
+        {isEditing ? (
+             <input
+                ref={inputRef}
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setIsEditing(false); }}
+                className="w-24 text-sm px-2 py-1 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+        ) : (
+            <span className="text-sm font-semibold text-slate-600 w-24 text-right pr-2">{currencySymbol}{item.price.toLocaleString()}</span>
+        )}
+        {isEditing ? (
+             <button onClick={handleSave} className="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700">Save</button>
+        ) : (
+            <button onClick={handleEdit} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface EditableSpeedBoatPriceItemProps {
+  trip: SpeedBoatTrip;
+  onSave: (trip: SpeedBoatTrip) => void;
+}
+
+const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({ trip, onSave }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [price, setPrice] = useState(trip.price.toString());
+    const [cost, setCost] = useState(trip.cost.toString());
+
+    const handleSave = () => {
+        const newPrice = Number(price);
+        const newCost = Number(cost);
+        if (!isNaN(newPrice) && newPrice >= 0 && !isNaN(newCost) && newCost >= 0) {
+            onSave({ ...trip, price: newPrice, cost: newCost });
+            setIsEditing(false);
+        } else {
+            alert('Please enter valid price and cost values.');
+        }
+    };
+
+    return (
+        <div className="flex flex-wrap justify-between items-center p-3 bg-slate-50 rounded-lg border gap-2">
+            <div className="flex-grow">
+                <p className="text-sm font-medium text-slate-800">{trip.route}</p>
+                <p className="text-xs text-slate-500">{trip.company}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+                {isEditing ? (
+                    <>
+                        <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">Price:</span>
+                            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-28 text-sm pl-12 pr-2 py-1 border border-slate-300 rounded-md" />
+                        </div>
+                        <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">Cost:</span>
+                            <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} className="w-28 text-sm pl-12 pr-2 py-1 border border-slate-300 rounded-md" />
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <span className="text-sm text-slate-600 w-28 text-right">Price: THB {trip.price.toLocaleString()}</span>
+                        <span className="text-sm text-slate-600 w-28 text-right">Cost: THB {trip.cost.toLocaleString()}</span>
+                    </>
+                )}
+
+                {isEditing ? (
+                    <button onClick={handleSave} className="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700">Save</button>
+                ) : (
+                    <button onClick={() => setIsEditing(true)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                )}
+            </div>
+        </div>
+    );
 };
+
+interface PriceManagementProps {
+    activities: Activity[];
+    speedBoatTrips: SpeedBoatTrip[];
+    taxiBoatOptions: TaxiBoatOption[];
+    extras: Extra[];
+    onUpdateActivity: (activity: Activity) => void;
+    onUpdateSpeedBoatTrip: (trip: SpeedBoatTrip) => void;
+    onUpdateTaxiBoatOption: (option: TaxiBoatOption) => void;
+    onUpdateExtra: (extra: Extra) => void;
+}
+
+const PriceManagement: React.FC<PriceManagementProps> = ({ activities, speedBoatTrips, taxiBoatOptions, extras, onUpdateActivity, onUpdateSpeedBoatTrip, onUpdateTaxiBoatOption, onUpdateExtra }) => {
+    return (
+        <div className="space-y-8">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Activity Prices</h2>
+                <div className="space-y-3">
+                    {activities.map(activity => (
+                        <EditablePriceItem key={activity.id} item={activity} onSave={onUpdateActivity} />
+                    ))}
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Speed Boat Prices</h2>
+                <div className="space-y-3">
+                    {speedBoatTrips.map(trip => (
+                        <EditableSpeedBoatPriceItem key={trip.id} trip={trip} onSave={onUpdateSpeedBoatTrip} />
+                    ))}
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Taxi Boat Prices</h2>
+                <div className="space-y-3">
+                    {taxiBoatOptions.map(option => (
+                        <EditablePriceItem key={option.id} item={option} onSave={onUpdateTaxiBoatOption} />
+                    ))}
+                </div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-slate-800 mb-4 border-b pb-2">Extras Prices</h2>
+                <div className="space-y-3">
+                    {extras.map(extra => (
+                        <EditablePriceItem key={extra.id} item={extra} onSave={onUpdateExtra} />
+                    ))}
+                </div>
+            </div>
+        </div>
+    )
+}
 
 
 interface ActivitiesManagementProps {
   activities: Activity[];
   speedBoatTrips: SpeedBoatTrip[];
   taxiBoatOptions: TaxiBoatOption[];
+  extras: Extra[];
   staff: Staff[];
   bookings: Booking[];
   externalSales: ExternalSale[];
@@ -108,6 +250,9 @@ interface ActivitiesManagementProps {
   onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
   onUpdateSpeedBoatTrip: (updatedTrip: SpeedBoatTrip) => void;
   onDeleteSpeedBoatTrip: (tripId: string) => void;
+  onUpdateActivity: (updatedActivity: Activity) => void;
+  onUpdateTaxiBoatOption: (updatedOption: TaxiBoatOption) => void;
+  onUpdateExtra: (updatedExtra: Extra) => void;
   currentUserRole: Role;
 }
 
@@ -362,11 +507,10 @@ const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, 
 }
 
 
-type SubView = 'tours' | 'boats' | 'extras' | 'report';
+type SubView = 'tours' | 'boats' | 'extras' | 'report' | 'pricing';
 type PrivateTourType = 'Half Day' | 'Full Day';
 
 const initialExtrasState = {
-    ...TOUR_EXTRAS.simple.reduce((acc, extra) => ({ ...acc, [extra.id]: false }), {}),
     paddleboardType: 'none',
     paddleboardHours: 1,
 };
@@ -382,7 +526,7 @@ const initialPrivateTourState = {
 };
 
 export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props) => {
-  const { activities, speedBoatTrips, taxiBoatOptions, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, currentUserRole } = props;
+  const { activities, speedBoatTrips, taxiBoatOptions, extras, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onUpdateActivity, onUpdateTaxiBoatOption, onUpdateExtra, currentUserRole } = props;
   const [activeTab, setActiveTab] = useState<SubView>('tours');
   
   // Modal States
@@ -431,10 +575,41 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   const [fuelCost, setFuelCost] = useState('');
   const [captainCost, setCaptainCost] = useState('');
   const [numberOfPeople, setNumberOfPeople] = useState('1');
-  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
   const [employeeCommission, setEmployeeCommission] = useState('');
   const [hostelCommission, setHostelCommission] = useState('');
+
+  // Report states
+  const [reportGranularity, setReportGranularity] = useState<'monthly' | 'yearly'>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
+  const [selectedDay, setSelectedDay] = useState<string>(''); // YYYY-MM-DD
+
+  const TOUR_EXTRAS = useMemo(() => {
+    const simple = extras.filter(e => !e.id.startsWith('paddle'));
+    const paddle_hour = extras.find(e => e.id === 'paddle_hour');
+    const paddle_day = extras.find(e => e.id === 'paddle_day');
+
+    return {
+        simple: simple,
+        special: {
+            paddleboard: {
+                hour: paddle_hour || { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 0 },
+                day: paddle_day || { id: 'paddle_day', name: 'Paddle board (per day)', price: 0 },
+            },
+        },
+    };
+  }, [extras]);
+
+  // Dynamically create the initial state for extras checkboxes
+  const dynamicInitialExtrasState = useMemo(() => ({
+    ...extras.reduce((acc, extra) => ({ ...acc, [extra.id]: false }), {}),
+    ...initialExtrasState,
+  }), [extras]);
+
+  useEffect(() => {
+    setSelectedExtras(dynamicInitialExtrasState);
+  }, [dynamicInitialExtrasState]);
 
 
   const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
@@ -444,13 +619,14 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     { id: 'boats', label: 'Boat Tickets', icon: <ShipIcon className="w-5 h-5" /> },
     { id: 'extras', label: 'Sell Extras', icon: <TagIcon className="w-5 h-5" /> },
     { id: 'report', label: 'Bookings Report', icon: <ChartBarIcon className="w-5 h-5" /> },
+    { id: 'pricing', label: 'Manage Prices', icon: <CurrencyDollarIcon className="w-5 h-5" /> },
   ];
 
   const visibleTabs = useMemo(() => {
     if (currentUserRole === Role.Admin) {
       return TABS;
     }
-    return TABS.filter(tab => tab.id !== 'report');
+    return TABS.filter(tab => tab.id !== 'report' && tab.id !== 'pricing');
   }, [currentUserRole]);
 
   useEffect(() => {
@@ -459,6 +635,11 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         setActiveTab(visibleTabs[0]?.id || 'tours');
     }
   }, [currentUserRole, activeTab, visibleTabs]);
+
+  // Clear day selection when month or granularity changes
+  useEffect(() => {
+    setSelectedDay('');
+  }, [selectedMonth, reportGranularity]);
 
 
   const calculateExtras = (currentExtras: any): { list: Omit<Extra, 'id'>[], total: number } => {
@@ -489,7 +670,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setSelectedStaffId('');
     setCommission('');
     setDiscount('');
-    setSelectedExtras(initialExtrasState);
+    setSelectedExtras(dynamicInitialExtrasState);
     setPaymentDetails(initialPaymentState);
     setPrivateTourDetails(initialPrivateTourState);
     setFuelCost('');
@@ -511,16 +692,16 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
     setIsExternalBookingModalOpen(true);
   };
   
-// Fix: Use generic type argument for reduce to ensure correct type inference.
   const groupedSpeedBoatTrips = useMemo(() => {
-    return speedBoatTrips.reduce<Record<string, SpeedBoatTrip[]>>((acc, trip) => {
+    // Fix: Remove unsupported generic from `reduce` and add a type assertion to the initial value.
+    return speedBoatTrips.reduce((acc, trip) => {
         const { route } = trip;
         if (!acc[route]) {
             acc[route] = [];
         }
         acc[route].push(trip);
         return acc;
-    }, {});
+    }, {} as Record<string, SpeedBoatTrip[]>);
   }, [speedBoatTrips]);
 
   const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {
@@ -684,30 +865,51 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   };
 
   // Report data logic
+    const currentFilter = useMemo(() => {
+        if (reportGranularity === 'yearly') {
+            if (selectedYear && /^\d{4}$/.test(selectedYear)) {
+                return selectedYear;
+            }
+            return new Date().getFullYear().toString();
+        }
+        return selectedMonth;
+    }, [reportGranularity, selectedMonth, selectedYear]);
+
+    const reportPeriodTitle = useMemo(() => {
+        if (reportGranularity === 'yearly') {
+            return currentFilter;
+        }
+        try {
+            return new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
+        } catch {
+            return 'Invalid Date';
+        }
+    }, [reportGranularity, selectedMonth, currentFilter]);
+    
     const filteredBookings = useMemo(() => {
-        if (!selectedMonth) return bookings;
-        return bookings.filter(b => b.bookingDate.startsWith(selectedMonth));
-    }, [bookings, selectedMonth]);
+        if (!currentFilter) return [];
+        return bookings.filter(b => b.bookingDate.startsWith(currentFilter));
+    }, [bookings, currentFilter]);
     
     const filteredExternalSales = useMemo(() => {
-        if (!selectedMonth) return externalSales;
-        return externalSales.filter(s => s.date.startsWith(selectedMonth));
-    }, [externalSales, selectedMonth]);
+        if (!currentFilter) return [];
+        return externalSales.filter(s => s.date.startsWith(currentFilter));
+    }, [externalSales, currentFilter]);
     
     const filteredPlatformPayments = useMemo(() => {
-        if (!selectedMonth) return platformPayments;
-        return platformPayments.filter(p => p.date.startsWith(selectedMonth));
-    }, [platformPayments, selectedMonth]);
+        if (!currentFilter) return [];
+        return platformPayments.filter(p => p.date.startsWith(currentFilter));
+    }, [platformPayments, currentFilter]);
     
     const filteredUtilityRecords = useMemo(() => {
-        if (!selectedMonth) return utilityRecords;
-        return utilityRecords.filter(r => r.date.startsWith(selectedMonth));
-    }, [utilityRecords, selectedMonth]);
+        if (!currentFilter) return [];
+        return utilityRecords.filter(r => r.date.startsWith(currentFilter));
+    }, [utilityRecords, currentFilter]);
 
     const filteredSalaryAdvances = useMemo(() => {
-        if (!selectedMonth) return salaryAdvances;
-        return salaryAdvances.filter(a => a.date.startsWith(selectedMonth));
-    }, [salaryAdvances, selectedMonth]);
+        if (!currentFilter) return [];
+        return salaryAdvances.filter(a => a.date.startsWith(currentFilter));
+    }, [salaryAdvances, currentFilter]);
 
     const reportData = useMemo(() => {
         // REVENUE
@@ -721,9 +923,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
         const totalOperationalCosts = filteredBookings.reduce((sum, b) => sum + (b.fuelCost || 0) + (b.captainCost || 0), 0);
         const totalEmployeeCommission = filteredBookings.reduce((sum, b) => sum + b.employeeCommission, 0);
-        const totalMonthlySalaries = staff.reduce((sum, s) => sum + (s.salary / 12), 0);
+        const totalSalaries = staff.reduce((sum, s) => sum + s.salary, 0);
+        const totalCalculatedSalaries = reportGranularity === 'yearly' ? totalSalaries : totalSalaries / 12;
         const totalSalaryAdvances = filteredSalaryAdvances.reduce((sum, a) => sum + a.amount, 0);
-        const totalExpenses = totalUtilitiesCost + totalOperationalCosts + totalEmployeeCommission + totalMonthlySalaries + totalSalaryAdvances;
+        const totalExpenses = totalUtilitiesCost + totalOperationalCosts + totalEmployeeCommission + totalCalculatedSalaries + totalSalaryAdvances;
 
         // PROFIT
         const netProfit = totalRevenue - totalExpenses;
@@ -741,7 +944,6 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
-// Fix: Use generic type argument for reduce to ensure correct type inference.
         const companyDebts = filteredBookings
             .filter(b => b.itemType === 'speedboat')
             .reduce<Record<string, number>>((acc, booking) => {
@@ -766,13 +968,76 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             totalUtilitiesCost,
             totalOperationalCosts,
             totalEmployeeCommission,
-            totalMonthlySalaries,
+            totalMonthlySalaries: totalCalculatedSalaries,
             totalSalaryAdvances,
             netProfit,
             staffPerformance,
             companyDebts,
         };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff, speedBoatTrips]);
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff, speedBoatTrips, reportGranularity]);
+
+    // Daily Report Logic
+    const dailyFilteredBookings = useMemo(() => {
+        if (!selectedDay) return [];
+        return bookings.filter(b => b.bookingDate === selectedDay);
+    }, [bookings, selectedDay]);
+    const dailyFilteredExternalSales = useMemo(() => {
+        if (!selectedDay) return [];
+        return externalSales.filter(s => s.date === selectedDay);
+    }, [externalSales, selectedDay]);
+    const dailyFilteredPlatformPayments = useMemo(() => {
+        if (!selectedDay) return [];
+        return platformPayments.filter(p => p.date === selectedDay);
+    }, [platformPayments, selectedDay]);
+    
+    const dailyReportData = useMemo(() => {
+        if (!selectedDay) return null;
+
+        const bookingTransactions = dailyFilteredBookings.map(b => ({
+            id: `b-${b.id}`,
+            type: 'Booking',
+            description: b.itemName,
+            staffName: staffMap.get(b.staffId) || 'N/A',
+            total: b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0),
+            hostelProfit: b.hostelCommission,
+            employeeCommission: b.employeeCommission
+        }));
+
+        const externalSaleTransactions = dailyFilteredExternalSales.map(s => ({
+            id: `s-${s.id}`,
+            type: 'External Sale',
+            description: s.description || 'POS Sale',
+            staffName: 'N/A',
+            total: s.amount,
+            hostelProfit: s.amount,
+            employeeCommission: 0
+        }));
+        
+        const platformPaymentTransactions = dailyFilteredPlatformPayments.map(p => ({
+            id: `p-${p.id}`,
+            type: 'Platform Payment',
+            description: p.platform,
+            staffName: 'N/A',
+            total: p.amount,
+            hostelProfit: p.amount,
+            employeeCommission: 0
+        }));
+
+        const allTransactions = [...bookingTransactions, ...externalSaleTransactions, ...platformPaymentTransactions];
+
+        const totalDailyRevenue = allTransactions.reduce((sum, t) => sum + t.hostelProfit, 0);
+        const totalDailyEmployeeCommission = allTransactions.reduce((sum, t) => sum + t.employeeCommission, 0);
+        const dailyOpCosts = dailyFilteredBookings.reduce((sum, b) => sum + (b.fuelCost || 0) + (b.captainCost || 0), 0);
+        const totalDailyExpenses = totalDailyEmployeeCommission + dailyOpCosts;
+        const dailyNetProfit = totalDailyRevenue - totalDailyExpenses;
+
+        return {
+            totalDailyRevenue,
+            totalDailyExpenses,
+            dailyNetProfit,
+            allTransactions,
+        };
+    }, [selectedDay, staffMap, dailyFilteredBookings, dailyFilteredExternalSales, dailyFilteredPlatformPayments]);
 
 
   const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -933,7 +1198,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 <div key={route} className="flex justify-between items-center p-3 rounded-md bg-slate-50 border">
                                     <div>
                                         <p className="font-semibold text-slate-800">{route}</p>
-                                        <p className="text-xs text-slate-500">{trips.length} {trips.length > 1 ? 'companies' : 'company'} available</p>
+                                        {/* Fix: Added a check for trips before accessing length property */}
+                                        <p className="text-xs text-slate-500">{trips?.length} {trips?.length > 1 ? 'companies' : 'company'} available</p>
                                     </div>
                                     <button onClick={() => handleOpenSpeedBoatModalForRoute(route, trips)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Book</button>
                                 </div>
@@ -960,7 +1226,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                 <div className="bg-white rounded-lg shadow-md p-4">
                     <h3 className="text-lg font-semibold text-slate-800 mb-3">Sell Standalone Extras</h3>
                     <div className="space-y-2">
-                        {TOUR_EXTRAS_LIST.map(extra => (
+                        {extras.map(extra => (
                              <div key={extra.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50">
                                 <div>
                                     <p className="font-medium text-slate-700">{extra.name}</p>
@@ -974,23 +1240,120 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             )}
             {activeTab === 'report' && currentUserRole === Role.Admin && (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center">
-                        <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Filter by Month:</label>
-                        <input 
-                            type="month" 
-                            id="month-filter"
-                            value={selectedMonth}
-                            onChange={e => setSelectedMonth(e.target.value)}
-                            className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
-                        />
+                    <div className="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-x-6 gap-y-4">
+                        <div className="flex items-center space-x-4">
+                            <span className="text-sm font-medium text-slate-600">View Report By:</span>
+                            <div className="flex items-center space-x-3">
+                                <label className="flex items-center space-x-1 cursor-pointer">
+                                    <input type="radio" name="granularity" value="monthly" checked={reportGranularity === 'monthly'} onChange={() => setReportGranularity('monthly')} className="form-radio text-blue-600" />
+                                    <span className="text-sm">Monthly</span>
+                                </label>
+                                <label className="flex items-center space-x-1 cursor-pointer">
+                                    <input type="radio" name="granularity" value="yearly" checked={reportGranularity === 'yearly'} onChange={() => setReportGranularity('yearly')} className="form-radio text-blue-600" />
+                                    <span className="text-sm">Yearly</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {reportGranularity === 'monthly' && (
+                            <div className="flex items-center gap-4">
+                                <div>
+                                    <label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Month:</label>
+                                    <input 
+                                        type="month" 
+                                        id="month-filter"
+                                        value={selectedMonth}
+                                        onChange={e => setSelectedMonth(e.target.value)}
+                                        className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="day-filter" className="text-sm font-medium text-slate-600">Day:</label>
+                                    <input 
+                                        type="date" 
+                                        id="day-filter"
+                                        value={selectedDay}
+                                        onChange={e => setSelectedDay(e.target.value)}
+                                        className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                                    />
+                                </div>
+                                {selectedDay && (
+                                    <button onClick={() => setSelectedDay('')} className="text-sm text-blue-600 hover:underline">
+                                        View Full Month
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {reportGranularity === 'yearly' && (
+                            <div>
+                                <label htmlFor="year-filter" className="text-sm font-medium text-slate-600">Year:</label>
+                                <input 
+                                    type="number"
+                                    id="year-filter"
+                                    value={selectedYear}
+                                    onChange={e => setSelectedYear(e.target.value)}
+                                    className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1 w-24"
+                                    min="2020"
+                                    max={new Date().getFullYear() + 5}
+                                    step="1"
+                                />
+                            </div>
+                        )}
                     </div>
+
+                    {/* Daily Report View */}
+                    {dailyReportData && reportGranularity === 'monthly' && (
+                        <div className="mt-6 space-y-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                            <h2 className="text-xl font-bold text-slate-800">
+                                Daily Report for {new Date(selectedDay + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <SummaryCard title="Daily Revenue" value={currencyFormat(dailyReportData.totalDailyRevenue)} icon={<CurrencyDollarIcon />} />
+                                <SummaryCard title="Daily Expenses" value={currencyFormat(dailyReportData.totalDailyExpenses)} icon={<ReceiptPercentIcon />} />
+                                <SummaryCard title="Daily Net Profit" value={currencyFormat(dailyReportData.dailyNetProfit)} icon={<TrendingUpIcon />} />
+                            </div>
+                            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Daily Transactions Log</h3>
+                                <table className="w-full text-sm text-left text-slate-500">
+                                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                                        <tr>
+                                            <th className="px-6 py-3">Type</th>
+                                            <th className="px-6 py-3">Description</th>
+                                            <th className="px-6 py-3">Staff</th>
+                                            <th className="px-6 py-3">Total Sale</th>
+                                            <th className="px-6 py-3">Hostel Profit</th>
+                                            <th className="px-6 py-3">Emp. Commission</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {dailyReportData.allTransactions.map(t => (
+                                            <tr key={t.id} className="bg-white border-b hover:bg-slate-50">
+                                                <td className="px-6 py-4 font-medium">{t.type}</td>
+                                                <td className="px-6 py-4">{t.description}</td>
+                                                <td className="px-6 py-4">{t.staffName}</td>
+                                                <td className="px-6 py-4">{currencyFormat(t.total)}</td>
+                                                <td className="px-6 py-4 font-bold text-green-600">{currencyFormat(t.hostelProfit)}</td>
+                                                <td className="px-6 py-4 font-medium text-orange-600">{currencyFormat(t.employeeCommission)}</td>
+                                            </tr>
+                                        ))}
+                                        {dailyReportData.allTransactions.length === 0 && (
+                                            <tr><td colSpan={6} className="text-center p-4 text-slate-500">No transactions for this day.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Monthly/Yearly Report View */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         <SummaryCard title="Total Revenue" value={currencyFormat(reportData.totalRevenue)} icon={<CurrencyDollarIcon />} />
                         <SummaryCard title="Total Expenses" value={currencyFormat(reportData.totalExpenses)} icon={<ReceiptPercentIcon />} />
                         <SummaryCard title="Net Profit" value={currencyFormat(reportData.netProfit)} icon={<TrendingUpIcon />} />
                     </div>
                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Financial Breakdown - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Financial Breakdown - {reportPeriodTitle}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200">
                             <div className="bg-white p-4">
                                 <h4 className="font-semibold text-green-600 mb-2">Revenue Streams</h4>
@@ -1004,7 +1367,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                             <div className="bg-white p-4">
                                 <h4 className="font-semibold text-red-600 mb-2">Expense Streams</h4>
                                 <ul className="space-y-1 text-sm">
-                                    <li className="flex justify-between"><span>Staff Salaries (Monthly Est.):</span> <span className="font-medium">{currencyFormat(reportData.totalMonthlySalaries)}</span></li>
+                                    <li className="flex justify-between"><span>Staff Salaries ({reportGranularity === 'yearly' ? 'Annual' : 'Monthly'} Est.):</span> <span className="font-medium">{currencyFormat(reportData.totalMonthlySalaries)}</span></li>
                                     <li className="flex justify-between"><span>Employee Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommission)}</span></li>
                                     <li className="flex justify-between"><span>Utility Bills:</span> <span className="font-medium">{currencyFormat(reportData.totalUtilitiesCost)}</span></li>
                                     <li className="flex justify-between"><span>Operational Costs (Fuel/Captain):</span> <span className="font-medium">{currencyFormat(reportData.totalOperationalCosts)}</span></li>
@@ -1015,7 +1378,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         </div>
                     </div>
                      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Boat Company Payments Due - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Boat Company Payments Due - {reportPeriodTitle}</h3>
                         <table className="w-full text-sm text-left text-slate-500">
                             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                                 <tr>
@@ -1030,12 +1393,15 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                         <td className="px-6 py-4 font-bold text-red-600">{currencyFormat(amount)}</td>
                                     </tr>
                                 ))}
+                                {Object.keys(reportData.companyDebts).length === 0 && (
+                                     <tr><td colSpan={2} className="text-center p-4 text-slate-500">No payments due for this period.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
                         <div className="flex justify-between items-center p-4 border-b">
-                            <h3 className="text-lg font-semibold text-slate-800">Platform Payments - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                            <h3 className="text-lg font-semibold text-slate-800">Platform Payments - {reportPeriodTitle}</h3>
                             <button onClick={() => handleOpenPlatformPaymentModal()} className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 text-sm">
                                 <PlusIcon className="w-4 h-4 mr-2" /> Add Platform Payment
                             </button>
@@ -1065,12 +1431,15 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                         </td>
                                     </tr>
                                 ))}
+                                 {filteredPlatformPayments.length === 0 && (
+                                     <tr><td colSpan={5} className="text-center p-4 text-slate-500">No platform payments for this period.</td></tr>
+                                )}
                              </tbody>
                         </table>
                     </div>
                      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
                         <div className="flex justify-between items-center p-4 border-b">
-                            <h3 className="text-lg font-semibold text-slate-800">External POS Sales - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                            <h3 className="text-lg font-semibold text-slate-800">External POS Sales - {reportPeriodTitle}</h3>
                             <button onClick={() => handleOpenExternalSaleModal()} className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 text-sm">
                                 <PlusIcon className="w-4 h-4 mr-2" /> Add POS Sale
                             </button>
@@ -1098,11 +1467,14 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                         </td>
                                     </tr>
                                 ))}
+                                {filteredExternalSales.length === 0 && (
+                                     <tr><td colSpan={4} className="text-center p-4 text-slate-500">No external sales for this period.</td></tr>
+                                )}
                              </tbody>
                         </table>
                     </div>
                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Staff Performance - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Staff Performance - {reportPeriodTitle}</h3>
                         <table className="w-full text-sm text-left text-slate-500">
                             <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                                 <tr>
@@ -1125,7 +1497,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         </table>
                     </div>
                     <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">All Bookings - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+                        <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">All Bookings - {reportPeriodTitle}</h3>
                         <table className="w-full text-sm text-left text-slate-500">
                              <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                                 <tr>
@@ -1154,10 +1526,25 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                         </td>
                                     </tr>
                                 ))}
+                                 {filteredBookings.length === 0 && (
+                                     <tr><td colSpan={7} className="text-center p-4 text-slate-500">No bookings for this period.</td></tr>
+                                )}
                              </tbody>
                         </table>
                     </div>
                 </div>
+            )}
+            {activeTab === 'pricing' && currentUserRole === Role.Admin && (
+                <PriceManagement
+                    activities={activities}
+                    speedBoatTrips={speedBoatTrips}
+                    taxiBoatOptions={taxiBoatOptions}
+                    extras={extras}
+                    onUpdateActivity={onUpdateActivity}
+                    onUpdateSpeedBoatTrip={onUpdateSpeedBoatTrip}
+                    onUpdateTaxiBoatOption={onUpdateTaxiBoatOption}
+                    onUpdateExtra={onUpdateExtra}
+                />
             )}
         </div>
 
@@ -1212,7 +1599,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    <span>{currencyFormat(finalTotal)}</span>
+                                    {/* Fix: Cast `finalTotal` to Number to resolve 'unknown' type error. */}
+                                    <span>{currencyFormat(Number(finalTotal))}</span>
                                 </div>
                             </div>
                         </div>
@@ -1262,7 +1650,8 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    <span>{currencyFormat(finalTotal)}</span>
+                                    {/* Fix: Cast `finalTotal` to Number to resolve 'unknown' type error. */}
+                                    <span>{currencyFormat(Number(finalTotal))}</span>
                                 </div>
                             </div>
                         </div>

@@ -137,7 +137,7 @@ export interface WalkInGuest {
   checkInDate: string; // YYYY-MM-DD
   numberOfNights: number;
   pricePerNight: number;
-  totalPaid: number;
+  amountPaid: number;
   paymentMethod: PaymentMethod;
   nationality?: string;
   idNumber?: string;
