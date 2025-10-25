@@ -5,8 +5,8 @@ import UtilitiesManagement from './components/UtilitiesManagement';
 import RoomManagement from './components/RoomManagement';
 import { ActivitiesManagement } from './components/ActivitiesManagement';
 import WalkInManagement from './components/WalkInManagement';
-import type { Staff, Shift, Task, UtilityRecord, Room, Bed, Absence, Activity, SpeedBoatTrip, Booking, Extra, PaymentMethod, SalaryAdvance, TaxiBoatOption, ExternalSale, PlatformPayment, WalkInGuest } from './types';
-import { EntityCondition, TaskStatus, BedStatus, Role } from './types';
+import type { Staff, Shift, Task, UtilityRecord, Room, Bed, Absence, Activity, SpeedBoatTrip, Booking, Extra, PaymentMethod, SalaryAdvance, TaxiBoatOption, ExternalSale, PlatformPayment, WalkInGuest, AccommodationBooking } from './types';
+import { EntityCondition, TaskStatus, BedStatus, Role, PaymentStatus } from './types';
 
 // Mock Data
 const MOCK_STAFF_DATA: Staff[] = [
@@ -171,8 +171,14 @@ const MOCK_ROOMS_DATA: Room[] = [
 ];
 
 const MOCK_WALK_IN_GUESTS_DATA: WalkInGuest[] = [
-    { id: 'walkin1', guestName: 'Alex Ray', roomId: 'bungalow1', checkInDate: '2024-07-28', numberOfNights: 2, pricePerNight: 500, amountPaid: 1000, paymentMethod: 'Cash', nationality: 'USA' },
-    { id: 'walkin2', guestName: 'Mia Wong', roomId: 'room2', bedNumber: 2, checkInDate: '2024-07-29', numberOfNights: 3, pricePerNight: 250, amountPaid: 500, paymentMethod: 'Credit Card', nationality: 'Canada' },
+    { id: 'walkin1', guestName: 'Alex Ray', roomId: 'bungalow1', checkInDate: '2024-07-28', numberOfNights: 2, pricePerNight: 500, amountPaid: 1000, paymentMethod: 'Cash', nationality: 'USA', status: PaymentStatus.Paid },
+    { id: 'walkin2', guestName: 'Mia Wong', roomId: 'room2', bedNumber: 2, checkInDate: '2024-07-29', numberOfNights: 3, pricePerNight: 250, amountPaid: 500, paymentMethod: 'Credit Card', nationality: 'Canada', status: PaymentStatus['Deposit Paid'] },
+];
+
+const MOCK_ACCOMMODATION_BOOKINGS_DATA: AccommodationBooking[] = [
+    { id: 'accbook1', guestName: 'Leo Messi', platform: 'Booking.com', roomId: 'bungalow2', checkInDate: '2024-07-30', numberOfNights: 4, totalPrice: 2200, amountPaid: 220, status: PaymentStatus['Deposit Paid'] },
+    { id: 'accbook2', guestName: 'Cristiano Ronaldo', platform: 'Hostelworld', roomId: 'room3', bedNumber: 1, checkInDate: '2024-08-01', numberOfNights: 5, totalPrice: 1500, amountPaid: 1500, status: PaymentStatus.Paid },
+    { id: 'accbook3', guestName: 'Neymar Jr', platform: 'Agoda', roomId: 'bungalow4', checkInDate: '2024-08-02', numberOfNights: 2, totalPrice: 1100, amountPaid: 110, status: PaymentStatus['Deposit Paid'] },
 ];
 
 
@@ -184,7 +190,7 @@ MOCK_ROOMS_DATA[14].beds[0].status = BedStatus['Needs Cleaning'];
 MOCK_ROOMS_DATA[15].beds[6].status = BedStatus['Needs Cleaning'];
 // End Mock Data
 
-type View = 'rooms' | 'staff' | 'utilities' | 'activities' | 'walk-ins';
+type View = 'rooms' | 'staff' | 'utilities' | 'activities' | 'booking';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('activities');
@@ -207,6 +213,7 @@ const App: React.FC = () => {
   const [externalSales, setExternalSales] = useState<ExternalSale[]>(MOCK_EXTERNAL_SALES_DATA);
   const [platformPayments, setPlatformPayments] = useState<PlatformPayment[]>(MOCK_PLATFORM_PAYMENTS_DATA);
   const [walkInGuests, setWalkInGuests] = useState<WalkInGuest[]>(MOCK_WALK_IN_GUESTS_DATA);
+  const [accommodationBookings, setAccommodationBookings] = useState<AccommodationBooking[]>(MOCK_ACCOMMODATION_BOOKINGS_DATA);
 
 
   // Helper for ID generation
@@ -452,6 +459,11 @@ const App: React.FC = () => {
 
   // CRUD Handlers for Walk-in Guests
   const handleAddWalkInGuest = (newGuest: Omit<WalkInGuest, 'id'>) => setWalkInGuests([...walkInGuests, { ...newGuest, id: generateId() }]);
+  const handleUpdateWalkInGuest = (updatedGuest: WalkInGuest) => setWalkInGuests(walkInGuests.map(g => g.id === updatedGuest.id ? updatedGuest : g));
+  
+  // CRUD Handlers for Accommodation Bookings
+  const handleAddAccommodationBooking = (newBooking: Omit<AccommodationBooking, 'id'>) => setAccommodationBookings([...accommodationBookings, { ...newBooking, id: generateId() }]);
+  const handleUpdateAccommodationBooking = (updatedBooking: AccommodationBooking) => setAccommodationBookings(accommodationBookings.map(b => b.id === updatedBooking.id ? updatedBooking : b));
 
   // CRUD Handlers for Speed Boat Trips
   const handleAddSpeedBoatTrip = (newTrip: Omit<SpeedBoatTrip, 'id'>) => setSpeedBoatTrips([...speedBoatTrips, { ...newTrip, id: generateId() }]);
@@ -477,7 +489,7 @@ const App: React.FC = () => {
 
   const TABS: { id: View; label: string }[] = [
     { id: 'rooms', label: 'Rooms & Beds' },
-    { id: 'walk-ins', label: 'Walk-ins' },
+    { id: 'booking', label: 'Booking' },
     { id: 'staff', label: 'Staff & HR' },
     { id: 'utilities', label: 'Utilities' },
     { id: 'activities', label: 'Activities' },
@@ -487,7 +499,7 @@ const App: React.FC = () => {
     if (currentUserRole === Role.Admin) {
       return TABS;
     }
-    return TABS.filter(tab => tab.id === 'rooms' || tab.id === 'activities' || tab.id === 'walk-ins');
+    return TABS.filter(tab => ['rooms', 'booking', 'activities'].includes(tab.id));
   }, [currentUserRole]);
 
   useEffect(() => {
@@ -502,11 +514,15 @@ const App: React.FC = () => {
     switch (currentView) {
       case 'rooms':
         return <RoomManagement rooms={rooms} onAddRoom={handleAddRoom} onUpdateRoom={handleUpdateRoom} onDeleteRoom={handleDeleteRoom} currentUserRole={currentUserRole} />;
-      case 'walk-ins':
+      case 'booking':
         return <WalkInManagement 
                     rooms={rooms}
                     walkInGuests={walkInGuests}
+                    accommodationBookings={accommodationBookings}
                     onAddWalkInGuest={handleAddWalkInGuest}
+                    onUpdateWalkInGuest={handleUpdateWalkInGuest}
+                    onAddAccommodationBooking={handleAddAccommodationBooking}
+                    onUpdateAccommodationBooking={handleUpdateAccommodationBooking}
                 />;
       case 'staff':
         return currentUserRole === Role.Admin ? <StaffManagement staff={staff} shifts={shifts} tasks={tasks} absences={absences} salaryAdvances={salaryAdvances} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onAddAbsence={handleAddAbsence} onUpdateAbsence={handleUpdateAbsence} onDeleteAbsence={handleDeleteAbsence} onAddSalaryAdvance={handleAddSalaryAdvance} onUpdateSalaryAdvance={handleUpdateSalaryAdvance} onDeleteSalaryAdvance={handleDeleteSalaryAdvance} /> : null;
@@ -532,6 +548,9 @@ const App: React.FC = () => {
                     platformPayments={platformPayments}
                     utilityRecords={utilityRecords}
                     salaryAdvances={salaryAdvances}
+                    walkInGuests={walkInGuests}
+                    accommodationBookings={accommodationBookings}
+                    rooms={rooms}
                     onBookActivity={handleBookActivity} 
                     onBookSpeedBoat={handleBookSpeedBoatTrip} 
                     onBookExternalActivity={handleBookExternalActivity} 

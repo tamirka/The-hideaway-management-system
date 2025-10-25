@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, PaymentMethod, TaxiBoatOption, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance } from '../types';
+import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, PaymentMethod, TaxiBoatOption, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Room } from '../types';
 import { Role } from '../types';
 import Modal from './Modal';
 import { EyeIcon, EditIcon, PlusIcon, TrashIcon, CashRegisterIcon, GlobeAltIcon, ReceiptPercentIcon } from '../constants';
@@ -66,9 +66,13 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
   currencySymbol?: string;
 }
 
-// Fix: Changed component from a const arrow function to a function declaration
-// to resolve issues with generic components in JSX.
-function EditablePriceItem<T extends { id: string; name: string; price: number }>({ item, onSave, currencySymbol = 'THB' }: EditablePriceItemProps<T>) {
+// Fix: Reverted to a const arrow function to correctly handle generic props with JSX, which resolves type-checking issues with the 'key' prop in lists.
+// Fix: Reverted to a const arrow function to correctly handle generic props with JSX, which resolves type-checking issues with the 'key' prop in lists.
+const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
+  item,
+  onSave,
+  currencySymbol = 'THB',
+}: EditablePriceItemProps<T>) => {
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -114,7 +118,7 @@ function EditablePriceItem<T extends { id: string; name: string; price: number }
       </div>
     </div>
   );
-}
+};
 
 interface EditableSpeedBoatPriceItemProps {
   trip: SpeedBoatTrip;
@@ -234,6 +238,9 @@ interface ActivitiesManagementProps {
   platformPayments: PlatformPayment[];
   utilityRecords: UtilityRecord[];
   salaryAdvances: SalaryAdvance[];
+  walkInGuests: WalkInGuest[];
+  accommodationBookings: AccommodationBooking[];
+  rooms: Room[];
   onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
   onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
   onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => void;
@@ -526,7 +533,7 @@ const initialPrivateTourState = {
 };
 
 export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props) => {
-  const { activities, speedBoatTrips, taxiBoatOptions, extras, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onUpdateActivity, onUpdateTaxiBoatOption, onUpdateExtra, currentUserRole } = props;
+  const { activities, speedBoatTrips, taxiBoatOptions, extras, staff, bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, rooms, onBookActivity, onBookSpeedBoat, onBookExternalActivity, onBookPrivateTour, onBookStandaloneExtra, onBookTaxiBoat, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onUpdateActivity, onUpdateTaxiBoatOption, onUpdateExtra, currentUserRole } = props;
   const [activeTab, setActiveTab] = useState<SubView>('tours');
   
   // Modal States
@@ -613,6 +620,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
 
 
   const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
+  const roomMap = useMemo(() => new Map(rooms.map(r => [r.id, r.name])), [rooms]);
 
   const TABS: { id: SubView; label: string; icon: React.ReactNode; }[] = [
     { id: 'tours', label: 'Tours & Activities', icon: <RocketLaunchIcon className="w-5 h-5" /> },
@@ -693,7 +701,6 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
   };
   
   const groupedSpeedBoatTrips = useMemo(() => {
-    // Fix: Remove unsupported generic from `reduce` and add a type assertion to the initial value.
     return speedBoatTrips.reduce((acc, trip) => {
         const { route } = trip;
         if (!acc[route]) {
@@ -701,6 +708,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         }
         acc[route].push(trip);
         return acc;
+    // Fix: Explicitly type the initial value for the accumulator to ensure correct type inference.
     }, {} as Record<string, SpeedBoatTrip[]>);
   }, [speedBoatTrips]);
 
@@ -910,6 +918,16 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         if (!currentFilter) return [];
         return salaryAdvances.filter(a => a.date.startsWith(currentFilter));
     }, [salaryAdvances, currentFilter]);
+    
+    const filteredWalkInGuests = useMemo(() => {
+        if (!currentFilter) return [];
+        return walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter));
+    }, [walkInGuests, currentFilter]);
+
+    const filteredAccommodationBookings = useMemo(() => {
+        if (!currentFilter) return [];
+        return accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter));
+    }, [accommodationBookings, currentFilter]);
 
     const reportData = useMemo(() => {
         // REVENUE
@@ -917,7 +935,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         const totalHostelBookingCommission = filteredBookings.reduce((sum, b) => sum + b.hostelCommission, 0);
         const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
         const totalPlatformRevenue = filteredPlatformPayments.reduce((sum, p) => sum + p.amount, 0);
-        const totalRevenue = totalHostelBookingCommission + totalExternalSales + totalPlatformRevenue;
+        const totalWalkInRevenue = filteredWalkInGuests.reduce((sum, g) => sum + (g.pricePerNight * g.numberOfNights), 0);
+        const totalPlatformBookingRevenue = filteredAccommodationBookings.reduce((sum, b) => sum + b.totalPrice, 0);
+        const totalAccommodationRevenue = totalWalkInRevenue + totalPlatformBookingRevenue;
+        const totalRevenue = totalHostelBookingCommission + totalExternalSales + totalPlatformRevenue + totalAccommodationRevenue;
         
         // EXPENSES
         const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
@@ -964,6 +985,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             totalHostelBookingCommission,
             totalExternalSales,
             totalPlatformRevenue,
+            totalAccommodationRevenue,
             totalExpenses,
             totalUtilitiesCost,
             totalOperationalCosts,
@@ -974,10 +996,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             staffPerformance,
             companyDebts,
         };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, staff, speedBoatTrips, reportGranularity]);
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
 
     // Daily Report Logic
-    const dailyFilteredBookings = useMemo(() => {
+     const dailyFilteredBookings = useMemo(() => {
         if (!selectedDay) return [];
         return bookings.filter(b => b.bookingDate === selectedDay);
     }, [bookings, selectedDay]);
@@ -989,13 +1011,21 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
         if (!selectedDay) return [];
         return platformPayments.filter(p => p.date === selectedDay);
     }, [platformPayments, selectedDay]);
+    const dailyFilteredWalkInGuests = useMemo(() => {
+        if (!selectedDay) return [];
+        return walkInGuests.filter(g => g.checkInDate === selectedDay);
+    }, [walkInGuests, selectedDay]);
+    const dailyFilteredAccommodationBookings = useMemo(() => {
+        if (!selectedDay) return [];
+        return accommodationBookings.filter(b => b.checkInDate === selectedDay);
+    }, [accommodationBookings, selectedDay]);
     
     const dailyReportData = useMemo(() => {
         if (!selectedDay) return null;
 
         const bookingTransactions = dailyFilteredBookings.map(b => ({
             id: `b-${b.id}`,
-            type: 'Booking',
+            type: 'Activity/Tour',
             description: b.itemName,
             staffName: staffMap.get(b.staffId) || 'N/A',
             total: b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0),
@@ -1023,7 +1053,27 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             employeeCommission: 0
         }));
 
-        const allTransactions = [...bookingTransactions, ...externalSaleTransactions, ...platformPaymentTransactions];
+        const walkInTransactions = dailyFilteredWalkInGuests.map(g => ({
+            id: `wi-${g.id}`,
+            type: 'Walk-In Check-in',
+            description: `${g.guestName} - ${roomMap.get(g.roomId) || 'N/A'}`,
+            staffName: 'N/A',
+            total: g.pricePerNight * g.numberOfNights,
+            hostelProfit: g.pricePerNight * g.numberOfNights,
+            employeeCommission: 0
+        }));
+
+        const accommodationBookingTransactions = dailyFilteredAccommodationBookings.map(b => ({
+            id: `ab-${b.id}`,
+            type: 'Booking Check-in',
+            description: `${b.guestName} - ${b.platform}`,
+            staffName: 'N/A',
+            total: b.totalPrice,
+            hostelProfit: b.totalPrice,
+            employeeCommission: 0
+        }));
+
+        const allTransactions = [...bookingTransactions, ...externalSaleTransactions, ...platformPaymentTransactions, ...walkInTransactions, ...accommodationBookingTransactions];
 
         const totalDailyRevenue = allTransactions.reduce((sum, t) => sum + t.hostelProfit, 0);
         const totalDailyEmployeeCommission = allTransactions.reduce((sum, t) => sum + t.employeeCommission, 0);
@@ -1037,7 +1087,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
             dailyNetProfit,
             allTransactions,
         };
-    }, [selectedDay, staffMap, dailyFilteredBookings, dailyFilteredExternalSales, dailyFilteredPlatformPayments]);
+    }, [selectedDay, staffMap, roomMap, dailyFilteredBookings, dailyFilteredExternalSales, dailyFilteredPlatformPayments, dailyFilteredWalkInGuests, dailyFilteredAccommodationBookings]);
 
 
   const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -1198,8 +1248,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 <div key={route} className="flex justify-between items-center p-3 rounded-md bg-slate-50 border">
                                     <div>
                                         <p className="font-semibold text-slate-800">{route}</p>
-                                        {/* Fix: Added a check for trips before accessing length property */}
-                                        <p className="text-xs text-slate-500">{trips?.length} {trips?.length > 1 ? 'companies' : 'company'} available</p>
+                                        <p className="text-xs text-slate-500">{trips.length} {trips.length > 1 ? 'companies' : 'company'} available</p>
                                     </div>
                                     <button onClick={() => handleOpenSpeedBoatModalForRoute(route, trips)} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Book</button>
                                 </div>
@@ -1347,8 +1396,9 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                     )}
 
                     {/* Monthly/Yearly Report View */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
                         <SummaryCard title="Total Revenue" value={currencyFormat(reportData.totalRevenue)} icon={<CurrencyDollarIcon />} />
+                        <SummaryCard title="Accommodation Revenue" value={currencyFormat(reportData.totalAccommodationRevenue)} icon={<BuildingOfficeIcon />} />
                         <SummaryCard title="Total Expenses" value={currencyFormat(reportData.totalExpenses)} icon={<ReceiptPercentIcon />} />
                         <SummaryCard title="Net Profit" value={currencyFormat(reportData.netProfit)} icon={<TrendingUpIcon />} />
                     </div>
@@ -1358,6 +1408,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                             <div className="bg-white p-4">
                                 <h4 className="font-semibold text-green-600 mb-2">Revenue Streams</h4>
                                 <ul className="space-y-1 text-sm">
+                                    <li className="flex justify-between"><span>Accommodation Revenue:</span> <span className="font-medium">{currencyFormat(reportData.totalAccommodationRevenue)}</span></li>
                                     <li className="flex justify-between"><span>Hostel Booking Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalHostelBookingCommission)}</span></li>
                                     <li className="flex justify-between"><span>External POS Sales:</span> <span className="font-medium">{currencyFormat(reportData.totalExternalSales)}</span></li>
                                     <li className="flex justify-between"><span>Platform Payments:</span> <span className="font-medium">{currencyFormat(reportData.totalPlatformRevenue)}</span></li>
@@ -1599,7 +1650,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    {/* Fix: Cast `finalTotal` to Number to resolve 'unknown' type error. */}
+                                    {/* Fix: Explicitly cast finalTotal to a number to ensure type compatibility with currencyFormat. */}
                                     <span>{currencyFormat(Number(finalTotal))}</span>
                                 </div>
                             </div>
@@ -1650,7 +1701,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                                 )}
                                 <div className="flex justify-between font-bold text-base pt-2 border-t mt-2">
                                     <span>Total</span>
-                                    {/* Fix: Cast `finalTotal` to Number to resolve 'unknown' type error. */}
+                                    {/* Fix: Explicitly cast finalTotal to a number to ensure type compatibility with currencyFormat. */}
                                     <span>{currencyFormat(Number(finalTotal))}</span>
                                 </div>
                             </div>

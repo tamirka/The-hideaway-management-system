@@ -23,6 +23,12 @@ export enum Role {
     Staff = 'Staff',
 }
 
+export enum PaymentStatus {
+  Paid = 'Paid',
+  'Deposit Paid' = 'Deposit Paid',
+  Unpaid = 'Unpaid',
+}
+
 // Fix: Add Bed interface for use in RoomManagement component.
 export interface Bed {
     id: string;
@@ -142,6 +148,20 @@ export interface WalkInGuest {
   nationality?: string;
   idNumber?: string;
   notes?: string;
+  status: PaymentStatus;
+}
+
+export interface AccommodationBooking {
+  id: string;
+  guestName: string;
+  platform: string;
+  roomId: string;
+  bedNumber?: number;
+  checkInDate: string; // YYYY-MM-DD
+  numberOfNights: number;
+  totalPrice: number;
+  amountPaid: number; // Deposit from platform
+  status: PaymentStatus;
 }
 
 export interface Booking {

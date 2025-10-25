@@ -1,10 +1,10 @@
 import React from 'react';
 // Fix: Import BedStatus type.
-import type { EntityCondition, TaskStatus, BedStatus } from '../types';
+import type { EntityCondition, TaskStatus, BedStatus, PaymentStatus } from '../types';
 
 interface BadgeProps {
   // Fix: Add BedStatus to the union type for the status prop.
-  status: EntityCondition | TaskStatus | BedStatus;
+  status: EntityCondition | TaskStatus | BedStatus | PaymentStatus;
 }
 
 const Badge: React.FC<BadgeProps> = ({ status }) => {
@@ -22,6 +22,10 @@ const Badge: React.FC<BadgeProps> = ({ status }) => {
     // Bed Status
     Ready: 'bg-green-100 text-green-800',
     'Needs Cleaning': 'bg-yellow-100 text-yellow-800',
+    // Payment Status
+    Paid: 'bg-green-100 text-green-800',
+    'Deposit Paid': 'bg-yellow-100 text-yellow-800',
+    Unpaid: 'bg-red-100 text-red-800',
   };
 
   const statusColor = colorClasses[status] || 'bg-slate-100 text-slate-800';
