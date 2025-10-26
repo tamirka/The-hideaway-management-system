@@ -29,6 +29,11 @@ export enum PaymentStatus {
   Unpaid = 'Unpaid',
 }
 
+export interface PaymentType {
+  id: string;
+  name: string;
+}
+
 // Fix: Add Bed interface for use in RoomManagement component.
 export interface Bed {
     id: string;
@@ -133,8 +138,6 @@ export interface Extra {
   price: number;
 }
 
-export type PaymentMethod = 'Cash' | 'Credit Card' | 'Internet Payment';
-
 export interface WalkInGuest {
   id: string;
   guestName: string;
@@ -144,7 +147,7 @@ export interface WalkInGuest {
   numberOfNights: number;
   pricePerNight: number;
   amountPaid: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: string;
   nationality?: string;
   idNumber?: string;
   notes?: string;
@@ -178,7 +181,7 @@ export interface Booking {
   discount?: number;
   extras?: Omit<Extra, 'id'>[];
   extrasTotal?: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: string;
   receiptImage?: string; // base64 encoded image
   fuelCost?: number;
   captainCost?: number;

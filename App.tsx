@@ -3,9 +3,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { StaffManagement } from './components/StaffManagement';
 import UtilitiesManagement from './components/UtilitiesManagement';
 import RoomManagement from './components/RoomManagement';
-import { ActivitiesManagement } from './components/ActivitiesManagement';
+import { ActivitiesManagement } from './components/activities/ActivitiesManagement';
 import WalkInManagement from './components/WalkInManagement';
-import type { Staff, Shift, Task, UtilityRecord, Room, Bed, Absence, Activity, SpeedBoatTrip, Booking, Extra, PaymentMethod, SalaryAdvance, TaxiBoatOption, ExternalSale, PlatformPayment, WalkInGuest, AccommodationBooking } from './types';
+import type { Staff, Shift, Task, UtilityRecord, Room, Bed, Absence, Activity, SpeedBoatTrip, Booking, Extra, SalaryAdvance, TaxiBoatOption, ExternalSale, PlatformPayment, WalkInGuest, AccommodationBooking, PaymentType } from './types';
 import { EntityCondition, TaskStatus, BedStatus, Role, PaymentStatus } from './types';
 
 // Mock Data
@@ -102,6 +102,12 @@ const MOCK_EXTRAS_DATA: Extra[] = [
     { id: 'gopro', name: 'Go pro (per day)', price: 600 },
     { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 200 },
     { id: 'paddle_day', name: 'Paddle board (per day)', price: 600 },
+];
+
+const MOCK_PAYMENT_TYPES: PaymentType[] = [
+    { id: 'pm_cash', name: 'Cash' },
+    { id: 'pm_card', name: 'Credit Card' },
+    { id: 'pm_inet', name: 'Internet Payment' },
 ];
 
 
@@ -214,13 +220,14 @@ const App: React.FC = () => {
   const [platformPayments, setPlatformPayments] = useState<PlatformPayment[]>(MOCK_PLATFORM_PAYMENTS_DATA);
   const [walkInGuests, setWalkInGuests] = useState<WalkInGuest[]>(MOCK_WALK_IN_GUESTS_DATA);
   const [accommodationBookings, setAccommodationBookings] = useState<AccommodationBooking[]>(MOCK_ACCOMMODATION_BOOKINGS_DATA);
+  const [paymentTypes, setPaymentTypes] = useState<PaymentType[]>(MOCK_PAYMENT_TYPES);
 
 
   // Helper for ID generation
   const generateId = () => `id_${new Date().getTime()}`;
 
   // Booking Handler for Activity
-  const handleBookActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => {
+  const handleBookActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) {
         console.error("Activity not found!");
@@ -259,7 +266,7 @@ const App: React.FC = () => {
   };
 
   // Booking Handler for External Activity
-  const handleBookExternalActivity = (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => {
+  const handleBookExternalActivity = (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) {
         console.error("Activity not found!");
@@ -296,7 +303,7 @@ const App: React.FC = () => {
   };
   
   // Booking Handler for Speed Boat
-  const handleBookSpeedBoatTrip = (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => {
+  const handleBookSpeedBoatTrip = (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
     const trip = speedBoatTrips.find(t => t.id === tripId);
     if (!trip) {
         console.error("Speed boat trip not found!");
@@ -330,7 +337,7 @@ const App: React.FC = () => {
   };
 
   // Booking Handler for Private Tour
-    const handleBookPrivateTour = (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number) => {
+    const handleBookPrivateTour = (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number) => {
         const commissionSplit = totalCommission / 2;
         
         const newBooking: Booking = {
@@ -358,7 +365,7 @@ const App: React.FC = () => {
     };
 
     // Booking Handler for Standalone Extra
-    const handleBookStandaloneExtra = (extra: Extra, staffId: string, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => {
+    const handleBookStandaloneExtra = (extra: Extra, staffId: string, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
         const commissionSplit = totalCommission / 2;
         const newBooking: Booking = {
             id: generateId(),
@@ -380,7 +387,7 @@ const App: React.FC = () => {
     };
 
     // Booking Handler for Taxi Boat
-    const handleBookTaxiBoat = (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: PaymentMethod, bookingDate: string, receiptImage?: string) => {
+    const handleBookTaxiBoat = (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
         const taxiOption = taxiBoatOptions.find(t => t.id === taxiOptionId);
         if (!taxiOption) return;
 
@@ -460,10 +467,12 @@ const App: React.FC = () => {
   // CRUD Handlers for Walk-in Guests
   const handleAddWalkInGuest = (newGuest: Omit<WalkInGuest, 'id'>) => setWalkInGuests([...walkInGuests, { ...newGuest, id: generateId() }]);
   const handleUpdateWalkInGuest = (updatedGuest: WalkInGuest) => setWalkInGuests(walkInGuests.map(g => g.id === updatedGuest.id ? updatedGuest : g));
+  const handleDeleteWalkInGuest = (guestId: string) => setWalkInGuests(walkInGuests.filter(g => g.id !== guestId));
   
   // CRUD Handlers for Accommodation Bookings
   const handleAddAccommodationBooking = (newBooking: Omit<AccommodationBooking, 'id'>) => setAccommodationBookings([...accommodationBookings, { ...newBooking, id: generateId() }]);
   const handleUpdateAccommodationBooking = (updatedBooking: AccommodationBooking) => setAccommodationBookings(accommodationBookings.map(b => b.id === updatedBooking.id ? updatedBooking : b));
+  const handleDeleteAccommodationBooking = (bookingId: string) => setAccommodationBookings(accommodationBookings.filter(b => b.id !== bookingId));
 
   // CRUD Handlers for Speed Boat Trips
   const handleAddSpeedBoatTrip = (newTrip: Omit<SpeedBoatTrip, 'id'>) => setSpeedBoatTrips([...speedBoatTrips, { ...newTrip, id: generateId() }]);
@@ -490,6 +499,11 @@ const App: React.FC = () => {
       setExtras(extras.map(e => e.id === updatedExtra.id ? updatedExtra : e));
   };
   const handleDeleteExtra = (extraId: string) => setExtras(extras.filter(e => e.id !== extraId));
+  
+  // CRUD Handlers for Payment Types
+  const handleAddPaymentType = (newType: Omit<PaymentType, 'id'>) => setPaymentTypes([...paymentTypes, { ...newType, id: generateId() }]);
+  const handleUpdatePaymentType = (updatedType: PaymentType) => setPaymentTypes(paymentTypes.map(p => p.id === updatedType.id ? updatedType : p));
+  const handleDeletePaymentType = (typeId: string) => setPaymentTypes(paymentTypes.filter(p => p.id !== typeId));
 
   // Handler for updating a booking
   const handleUpdateBooking = (updatedBooking: Booking) => {
@@ -509,7 +523,7 @@ const App: React.FC = () => {
     if (currentUserRole === Role.Admin) {
       return TABS;
     }
-    return TABS.filter(tab => ['rooms', 'booking', 'activities'].includes(tab.id));
+    return TABS.filter(tab => ['rooms', 'booking', 'activities', 'utilities'].includes(tab.id));
   }, [currentUserRole]);
 
   useEffect(() => {
@@ -529,15 +543,18 @@ const App: React.FC = () => {
                     rooms={rooms}
                     walkInGuests={walkInGuests}
                     accommodationBookings={accommodationBookings}
+                    paymentTypes={paymentTypes}
                     onAddWalkInGuest={handleAddWalkInGuest}
                     onUpdateWalkInGuest={handleUpdateWalkInGuest}
+                    onDeleteWalkInGuest={handleDeleteWalkInGuest}
                     onAddAccommodationBooking={handleAddAccommodationBooking}
                     onUpdateAccommodationBooking={handleUpdateAccommodationBooking}
+                    onDeleteAccommodationBooking={handleDeleteAccommodationBooking}
                 />;
       case 'staff':
         return currentUserRole === Role.Admin ? <StaffManagement staff={staff} shifts={shifts} tasks={tasks} absences={absences} salaryAdvances={salaryAdvances} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onDeleteStaff={handleDeleteStaff} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onAddAbsence={handleAddAbsence} onUpdateAbsence={handleUpdateAbsence} onDeleteAbsence={handleDeleteAbsence} onAddSalaryAdvance={handleAddSalaryAdvance} onUpdateSalaryAdvance={handleUpdateSalaryAdvance} onDeleteSalaryAdvance={handleDeleteSalaryAdvance} /> : null;
       case 'utilities':
-          return currentUserRole === Role.Admin ? <UtilitiesManagement 
+          return <UtilitiesManagement 
                     records={utilityRecords} 
                     onAddRecord={handleAddUtilityRecord} 
                     onUpdateRecord={handleUpdateUtilityRecord} 
@@ -545,7 +562,8 @@ const App: React.FC = () => {
                     utilityCategories={utilityCategories}
                     onAddCategory={handleAddUtilityCategory}
                     onDeleteCategory={handleDeleteUtilityCategory}
-                 /> : null;
+                    currentUserRole={currentUserRole}
+                 />;
       case 'activities':
           return <ActivitiesManagement 
                     activities={activities} 
@@ -561,6 +579,7 @@ const App: React.FC = () => {
                     walkInGuests={walkInGuests}
                     accommodationBookings={accommodationBookings}
                     rooms={rooms}
+                    paymentTypes={paymentTypes}
                     onBookActivity={handleBookActivity} 
                     onBookSpeedBoat={handleBookSpeedBoatTrip} 
                     onBookExternalActivity={handleBookExternalActivity} 
@@ -586,6 +605,9 @@ const App: React.FC = () => {
                     onAddExtra={handleAddExtra}
                     onUpdateExtra={handleUpdateExtra}
                     onDeleteExtra={handleDeleteExtra}
+                    onAddPaymentType={handleAddPaymentType}
+                    onUpdatePaymentType={handleUpdatePaymentType}
+                    onDeletePaymentType={handleDeletePaymentType}
                     currentUserRole={currentUserRole}
                  />;
       default:

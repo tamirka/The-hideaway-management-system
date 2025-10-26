@@ -102,3 +102,17 @@ export const ReceiptPercentIcon: React.FC<{className?: string}> = ({ className }
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75l6-6m-6 6a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm6-6a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
     </svg>
 );
+
+// Fix: Add missing TrendingUpIcon for BookingsReport
+export const TrendingUpIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-3.976 5.197m-4.267-7.155l4.267 7.155" />
+    </svg>
+);
+
+// Fix: Add missing BuildingOfficeIcon for BookingsReport
+export const BuildingOfficeIcon: React.FC<{className?: string}> = ({ className }) => (
+    <svg {...iconProps} className={className || "w-6 h-6"}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M8.25 21V3.75h7.5V21M8.25 6H12m-3.75 3H12m-3.75 3H12m-3.75 3H12m-3.75 3H12" />
+    </svg>
+);

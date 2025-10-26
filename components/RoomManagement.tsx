@@ -177,18 +177,20 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
             <div className="p-4 space-y-3 flex-grow">
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                    {room.beds.map(bed => (
-                       <div key={bed.id} className="flex items-center justify-between p-2 rounded-md bg-slate-50 border">
+                       <div key={bed.id} className={`flex items-center justify-between p-2 rounded-md border transition-colors ${bed.status === BedStatus['Needs Cleaning'] ? 'bg-yellow-100 border-yellow-300' : 'bg-slate-50'}`}>
                            <div className="flex items-center space-x-2">
-                               <BedIcon className="w-5 h-5 text-slate-400 flex-shrink-0"/>
+                               <BedIcon className={`w-5 h-5 flex-shrink-0 transition-colors ${bed.status === BedStatus['Needs Cleaning'] ? 'text-yellow-600' : 'text-slate-400'}`}/>
                                <span className="text-sm font-semibold text-slate-800">Bed {bed.number}</span>
                            </div>
                            {bed.status === BedStatus.Ready ? (
-                               <button 
-                                   onClick={() => handleBedStatusChange(room.id, bed.id, BedStatus['Needs Cleaning'])}
-                                   className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
-                               >
-                                   Check Out
-                               </button>
+                                currentUserRole === Role.Admin && (
+                                   <button 
+                                       onClick={() => handleBedStatusChange(room.id, bed.id, BedStatus['Needs Cleaning'])}
+                                       className="px-2 py-1 text-xs font-semibold text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors"
+                                   >
+                                       Check Out
+                                   </button>
+                                )
                            ) : (
                                <button 
                                    onClick={() => handleBedStatusChange(room.id, bed.id, BedStatus.Ready)}

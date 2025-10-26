@@ -1,7 +1,9 @@
 
+
 // Fix: Create the UtilitiesManagement component.
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { UtilityRecord } from '../types';
+import { Role } from '../types';
 import Modal from './Modal';
 import SimpleBarChart from './SimpleBarChart';
 import { PlusIcon, EditIcon, TrashIcon, UtilityIcon, EyeIcon, CurrencyDollarIcon, CalendarDaysIcon, ChartPieIcon } from '../constants';
@@ -173,9 +175,10 @@ interface UtilitiesManagementProps {
   utilityCategories: string[];
   onAddCategory: (category: string) => void;
   onDeleteCategory: (category: string) => void;
+  currentUserRole: Role;
 }
 
-const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAddRecord, onUpdateRecord, onDeleteRecord, utilityCategories, onAddCategory, onDeleteCategory }) => {
+const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAddRecord, onUpdateRecord, onDeleteRecord, utilityCategories, onAddCategory, onDeleteCategory, currentUserRole }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRecord, setEditingRecord] = useState<UtilityRecord | null>(null);
     const [viewingBill, setViewingBill] = useState<string | null>(null);
@@ -184,6 +187,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [newCategory, setNewCategory] = useState('');
 
+    const isAdmin = currentUserRole === Role.Admin;
 
     const handleOpenModal = (record?: UtilityRecord) => {
         setEditingRecord(record || null);
@@ -289,9 +293,11 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
             <div className="flex flex-col sm:flex-row justify-between sm:items-center">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Utilities Tracking</h1>
                  <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                    <button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm hover:bg-slate-700 transition-colors">
-                        Manage Categories
-                    </button>
+                    {isAdmin && (
+                        <button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-slate-600 text-white rounded-md shadow-sm hover:bg-slate-700 transition-colors">
+                            Manage Categories
+                        </button>
+                    )}
                     <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 transition-colors">
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Add Record
@@ -299,7 +305,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                 </div>
             </div>
 
-            {/* Analytics Dashboard */}
+            {/* Filters & Analytics */}
             <div className="space-y-6">
                 <div className="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-x-6 gap-y-4">
                     <div>
@@ -329,38 +335,42 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <SummaryCard title="Total Expenses" value={currencyFormat(analyticsData.totalExpenses)} icon={<CurrencyDollarIcon />} />
-                    <SummaryCard title="Highest Spending Day" value={analyticsData.highestDay} icon={<CalendarDaysIcon />} />
-                    <SummaryCard title="Top Category" value={analyticsData.topCategory} icon={<ChartPieIcon />} />
-                </div>
+                {isAdmin && (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <SummaryCard title="Total Expenses" value={currencyFormat(analyticsData.totalExpenses)} icon={<CurrencyDollarIcon />} />
+                            <SummaryCard title="Highest Spending Day" value={analyticsData.highestDay} icon={<CalendarDaysIcon />} />
+                            <SummaryCard title="Top Category" value={analyticsData.topCategory} icon={<ChartPieIcon />} />
+                        </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                        <SimpleBarChart data={analyticsData.dailyChartData} title={`Daily Expenses for ${reportPeriodTitle}`} color="#3b82f6" />
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm">
-                         <h3 className="text-center font-semibold text-slate-600 mb-2">Expenses by Category</h3>
-                         <div className="overflow-y-auto max-h-72">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
-                                    <tr>
-                                        <th className="px-4 py-2">Category</th>
-                                        <th className="px-4 py-2 text-right">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {analyticsData.categoryChartData.map(cat => (
-                                        <tr key={cat.label} className="border-b">
-                                            <td className="px-4 py-2 font-medium text-slate-800">{cat.label}</td>
-                                            <td className="px-4 py-2 text-right">{currencyFormat(cat.value)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                         </div>
-                    </div>
-                </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                <SimpleBarChart data={analyticsData.dailyChartData} title={`Daily Expenses for ${reportPeriodTitle}`} color="#3b82f6" />
+                            </div>
+                            <div className="bg-white p-4 rounded-lg shadow-sm">
+                                <h3 className="text-center font-semibold text-slate-600 mb-2">Expenses by Category</h3>
+                                <div className="overflow-y-auto max-h-72">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="text-xs text-slate-700 uppercase bg-slate-50 sticky top-0">
+                                            <tr>
+                                                <th className="px-4 py-2">Category</th>
+                                                <th className="px-4 py-2 text-right">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {analyticsData.categoryChartData.map(cat => (
+                                                <tr key={cat.label} className="border-b">
+                                                    <td className="px-4 py-2 font-medium text-slate-800">{cat.label}</td>
+                                                    <td className="px-4 py-2 text-right">{currencyFormat(cat.value)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
@@ -372,7 +382,9 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                             <th scope="col" className="px-6 py-3">Date</th>
                             <th scope="col" className="px-6 py-3">Price</th>
                             <th scope="col" className="px-6 py-3">Bill</th>
-                            <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                            {isAdmin && (
+                                <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                            )}
                         </tr>
                     </thead>
                     <tbody>
@@ -394,19 +406,21 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                                     <span className="text-xs text-slate-400">N/A</span>
                                 )}
                             </td>
-                            <td className="px-6 py-4 text-right">
-                                <div className="flex justify-end space-x-3">
-                                    <button onClick={() => handleOpenModal(record)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                    <button onClick={() => onDeleteRecord(record.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                </div>
-                            </td>
+                            {isAdmin && (
+                                <td className="px-6 py-4 text-right">
+                                    <div className="flex justify-end space-x-3">
+                                        <button onClick={() => handleOpenModal(record)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
+                                        <button onClick={() => onDeleteRecord(record.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
+                                    </div>
+                                </td>
+                            )}
                         </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRecord ? 'Edit Record' : 'Add New Record'}>
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRecord && isAdmin ? 'Edit Record' : 'Add New Record'}>
                 <UtilityForm onSubmit={handleSubmit} onClose={handleCloseModal} initialData={editingRecord} utilityCategories={utilityCategories} />
             </Modal>
             
@@ -414,38 +428,40 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
                 {viewingBill && <img src={viewingBill} alt="Utility bill" className="w-full h-auto rounded-md" />}
             </Modal>
 
-            <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title="Manage Utility Categories">
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="newCategory" className="block text-sm font-medium text-slate-700">Add New Category</label>
-                        <div className="mt-1 flex space-x-2">
-                            <input
-                                type="text"
-                                id="newCategory"
-                                value={newCategory}
-                                onChange={(e) => setNewCategory(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
-                                placeholder="e.g., Maintenance"
-                                className="flex-grow input-field"
-                            />
-                            <button onClick={handleAddCategory} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-semibold">Add</button>
+            {isAdmin && (
+                <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title="Manage Utility Categories">
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="newCategory" className="block text-sm font-medium text-slate-700">Add New Category</label>
+                            <div className="mt-1 flex space-x-2">
+                                <input
+                                    type="text"
+                                    id="newCategory"
+                                    value={newCategory}
+                                    onChange={(e) => setNewCategory(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                                    placeholder="e.g., Maintenance"
+                                    className="flex-grow input-field"
+                                />
+                                <button onClick={handleAddCategory} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-semibold">Add</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-medium text-slate-700 mb-2">Existing Categories</h4>
+                            <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded-md bg-slate-50">
+                                {utilityCategories.map(category => (
+                                    <div key={category} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
+                                        <span className="text-sm font-medium text-slate-800">{category}</span>
+                                        <button onClick={() => onDeleteCategory(category)} className="text-slate-400 hover:text-red-500 transition-colors">
+                                            <TrashIcon className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <h4 className="text-sm font-medium text-slate-700 mb-2">Existing Categories</h4>
-                        <div className="space-y-2 max-h-60 overflow-y-auto p-2 border rounded-md bg-slate-50">
-                            {utilityCategories.map(category => (
-                                <div key={category} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
-                                    <span className="text-sm font-medium text-slate-800">{category}</span>
-                                    <button onClick={() => onDeleteCategory(category)} className="text-slate-400 hover:text-red-500 transition-colors">
-                                        <TrashIcon className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </Modal>
+                </Modal>
+            )}
         </div>
     );
 };
