@@ -251,7 +251,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
-            }, {});
+            }, {} as Record<string, number>);
     
         return { totalRevenue, totalAccommodationRevenue, totalHostelBookingCommission, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalEmployeeCommission, totalUtilitiesCost, totalOperationalCosts, totalSalaryAdvances, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);

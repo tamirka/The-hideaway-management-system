@@ -63,7 +63,7 @@ const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData })
                 </select>
             </div>
             <div>
-                <label htmlFor="salary" className="block text-sm font-medium text-slate-700">Salary (Annual)</label>
+                <label htmlFor="salary" className="block text-sm font-medium text-slate-700">Salary (Monthly)</label>
                 <input type="number" id="salary" value={formData.salary} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
             <div>
@@ -260,7 +260,7 @@ const SalaryAdvanceForm: React.FC<SalaryAdvanceFormProps> = ({ onSubmit, onClose
                 </div>
             </div>
              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Amount ($)</label>
+                <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Amount (THB)</label>
                 <input type="number" step="0.01" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
             <div>
@@ -337,7 +337,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
         const monthlyAbsences = absences.filter(a => a.date.startsWith(selectedMonth));
         
         staff.forEach(s => {
-            const monthlySalary = s.salary / 12;
+            const monthlySalary = s.salary;
             const dailyDeductionRate = monthlySalary / daysInMonth;
             const staffAbsenceCount = monthlyAbsences.filter(a => a.staffId === s.id).length;
             const totalDeduction = staffAbsenceCount * dailyDeductionRate;
@@ -470,7 +470,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                         {staff.map(s => {
                             const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
                             const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                            const netMonthlySalary = (s.salary / 12) - totalAdvances - totalDeductions;
+                            const netMonthlySalary = s.salary - totalAdvances - totalDeductions;
                             return (
                                 <div key={s.id} className="bg-white rounded-lg shadow-md p-4 space-y-3">
                                     <div className="flex justify-between items-start">
@@ -486,10 +486,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     <div className="text-sm text-slate-600 border-t pt-3 space-y-1">
                                          <p><span className="font-semibold">ID:</span> {s.employeeId}</p>
                                          <p><span className="font-semibold">Contact:</span> {s.contact}</p>
-                                         <p><span className="font-semibold">Salary (Annual):</span> ${s.salary.toLocaleString()}</p>
-                                         <p><span className="font-semibold text-red-600">Monthly Advances:</span> ${totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                         <p><span className="font-semibold text-orange-600">Absence Deductions:</span> ${totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                         <p className="font-bold text-green-600 pt-1 border-t mt-1"><span className="font-semibold">Net Monthly Salary:</span> ${netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                         <p><span className="font-semibold">Salary (Monthly):</span> ฿{s.salary.toLocaleString()}</p>
+                                         <p><span className="font-semibold text-red-600">Monthly Advances:</span> ฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                         <p><span className="font-semibold text-orange-600">Absence Deductions:</span> ฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                         <p className="font-bold text-green-600 pt-1 border-t mt-1"><span className="font-semibold">Net Monthly Salary:</span> ฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                     </div>
                                 </div>
                             );
@@ -504,7 +504,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     <th className="px-6 py-3">Name</th>
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Employee ID</th>
-                                    <th className="px-6 py-3">Salary (Annual)</th>
+                                    <th className="px-6 py-3">Salary (Monthly)</th>
                                     <th className="px-6 py-3">Monthly Advances</th>
                                     <th className="px-6 py-3">Absence Deductions</th>
                                     <th className="px-6 py-3">Net Monthly Salary</th>
@@ -515,16 +515,16 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                 {staff.map(s => {
                                     const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
                                     const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                                    const netMonthlySalary = (s.salary / 12) - totalAdvances - totalDeductions;
+                                    const netMonthlySalary = s.salary - totalAdvances - totalDeductions;
                                     return (
                                         <tr key={s.id} className="bg-white border-b hover:bg-slate-50">
                                             <td className="px-6 py-4 font-medium text-slate-900">{s.name}</td>
                                             <td className="px-6 py-4">{s.role}</td>
                                             <td className="px-6 py-4">{s.employeeId}</td>
-                                            <td className="px-6 py-4">${s.salary.toLocaleString()}</td>
-                                            <td className="px-6 py-4 text-red-600 font-medium">${totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-orange-600 font-medium">${totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-green-600 font-bold">${netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-6 py-4">฿{s.salary.toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-red-600 font-medium">฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-6 py-4 text-orange-600 font-medium">฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                            <td className="px-6 py-4 text-green-600 font-bold">฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end space-x-3">
                                                     <button onClick={() => handleOpenStaffModal(s)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
@@ -715,7 +715,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     </div>
                                 </div>
                                 <div className="text-sm text-slate-600 border-t pt-2">
-                                    <p><span className="font-semibold">Amount:</span> ${a.amount.toFixed(2)}</p>
+                                    <p><span className="font-semibold">Amount:</span> ฿{a.amount.toFixed(2)}</p>
                                     {a.reason && <p><span className="font-semibold">Reason:</span> {a.reason}</p>}
                                 </div>
                             </div>
@@ -739,7 +739,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     <tr key={a.id} className="bg-white border-b hover:bg-slate-50">
                                         <td className="px-6 py-4 font-medium text-slate-900">{staffMap.get(a.staffId) || 'Unknown Staff'}</td>
                                         <td className="px-6 py-4">{a.date}</td>
-                                        <td className="px-6 py-4">${a.amount.toFixed(2)}</td>
+                                        <td className="px-6 py-4">฿{a.amount.toFixed(2)}</td>
                                         <td className="px-6 py-4">{a.reason || 'N/A'}</td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end space-x-3">

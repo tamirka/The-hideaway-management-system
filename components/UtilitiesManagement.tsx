@@ -111,7 +111,7 @@ const UtilityForm: React.FC<UtilityFormProps> = ({ onSubmit, onClose, initialDat
                 <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} required className="mt-1 block w-full input-field" />
             </div>
              <div>
-                <label htmlFor="cost" className="block text-sm font-medium text-slate-700">Price ($)</label>
+                <label htmlFor="cost" className="block text-sm font-medium text-slate-700">Price (THB)</label>
                 <input type="number" step="0.01" id="cost" value={cost} onChange={(e) => setCost(e.target.value)} required className="mt-1 block w-full input-field" />
             </div>
         </div>
@@ -286,7 +286,7 @@ const UtilitiesManagement: React.FC<UtilitiesManagementProps> = ({ records, onAd
         return { totalExpenses, dailyChartData, categoryChartData, topCategory, highestDay };
     }, [filteredRecords, selectedMonth, selectedDay]);
 
-    const currencyFormat = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     return (
         <div className="space-y-8">

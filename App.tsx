@@ -10,9 +10,9 @@ import { EntityCondition, TaskStatus, BedStatus, Role, PaymentStatus } from './t
 
 // Mock Data
 const MOCK_STAFF_DATA: Staff[] = [
-    { id: 'staff1', name: 'John Doe', role: Role.Admin, salary: 75000, contact: 'john.d@example.com', employeeId: 'EMP1001' },
-    { id: 'staff2', name: 'Jane Smith', role: Role.Staff, salary: 62000, contact: 'jane.s@example.com', employeeId: 'EMP1002' },
-    { id: 'staff3', name: 'Peter Jones', role: Role.Staff, salary: 51000, contact: 'peter.j@example.com', employeeId: 'EMP1003' },
+    { id: 'staff1', name: 'John Doe', role: Role.Admin, salary: 25000, contact: 'john.d@example.com', employeeId: 'EMP1001' },
+    { id: 'staff2', name: 'Jane Smith', role: Role.Staff, salary: 20000, contact: 'jane.s@example.com', employeeId: 'EMP1002' },
+    { id: 'staff3', name: 'Peter Jones', role: Role.Staff, salary: 17000, contact: 'peter.j@example.com', employeeId: 'EMP1003' },
 ];
 const MOCK_SHIFTS_DATA: Shift[] = [
     { id: 'shift1', date: '2024-07-29', staffName: 'Jane Smith', startTime: '07:00', endTime: '15:00' },

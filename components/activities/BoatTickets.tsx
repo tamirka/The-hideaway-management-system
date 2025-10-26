@@ -191,7 +191,7 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
             }
             acc[route].push(trip);
             return acc;
-        }, {});
+        }, {} as Record<string, SpeedBoatTrip[]>);
     }, [speedBoatTrips]);
 
     const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {

@@ -136,8 +136,12 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
   currencySymbol?: string;
 }
 
-function EditablePriceItem<T extends { id: string; name: string; price: number }>(props: EditablePriceItemProps<T>): React.ReactElement {
-  const { item, onSave, onDelete, currencySymbol = 'THB' } = props;
+const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
+  item,
+  onSave,
+  onDelete,
+  currencySymbol = 'THB',
+}: EditablePriceItemProps<T>): React.ReactElement => {
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -169,7 +173,7 @@ function EditablePriceItem<T extends { id: string; name: string; price: number }
       </div>
     </div>
   );
-}
+};
 
 interface EditableSpeedBoatPriceItemProps {
   trip: SpeedBoatTrip;
