@@ -267,7 +267,7 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     };
     
     const groupedSpeedBoatTrips = useMemo(() => {
-        // Fix: Correctly type the initial value for the reduce function to ensure type safety.
+        // Fix: Correctly type the accumulator in the reduce function to ensure type safety.
         return speedBoatTrips.reduce<Record<string, SpeedBoatTrip[]>>((acc, trip) => {
             const { route } = trip;
             if (!acc[route]) {

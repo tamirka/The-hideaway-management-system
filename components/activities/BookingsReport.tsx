@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra } from '../../types';
 import Modal from '../Modal';
@@ -204,7 +206,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 itemCost: newItemCost > 0 ? newItemCost : undefined,
                 employeeCommission: newCommission * numPeople,
             }));
-        }, [formData.itemId, formData.numberOfPeople]);
+        }, [formData.itemId, formData.numberOfPeople, availableItems]);
 
         const handleSave = () => {
             const finalData: Booking = { ...formData };
@@ -360,6 +362,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const filteredUtilityRecords = useMemo(() => utilityRecords.filter(r => r.date.startsWith(currentFilter)), [utilityRecords, currentFilter]);
     const filteredSalaryAdvances = useMemo(() => salaryAdvances.filter(a => a.date.startsWith(currentFilter)), [salaryAdvances, currentFilter]);
     const filteredWalkInGuests = useMemo(() => walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter)), [walkInGuests, currentFilter]);
+    const filteredAccommodationBookings = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
 
     const reportData = useMemo(() => {
         const totalActivityBookingRevenue = filteredBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
@@ -373,9 +376,11 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
 
         const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
         const totalWalkInRevenue = filteredWalkInGuests.reduce((sum, g) => sum + g.amountPaid, 0);
+        const totalBookingRevenue = filteredAccommodationBookings.reduce((sum, b) => sum + b.amountPaid, 0);
         const totalPlatformPaymentsRevenue = filteredPlatformPayments.reduce((sum, p) => sum + p.amount, 0);
-        const totalAccommodationRevenue = totalWalkInRevenue + totalPlatformPaymentsRevenue;
-        const totalRevenue = totalActivityBookingRevenue + totalExternalSales + totalAccommodationRevenue;
+
+        const totalAccommodationRevenue = totalWalkInRevenue + totalBookingRevenue;
+        const totalRevenue = totalActivityBookingRevenue + totalExternalSales + totalAccommodationRevenue + totalPlatformPaymentsRevenue;
         
         const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
         const totalItemCosts = filteredBookings.reduce((sum, b) => sum + (b.itemCost || 0), 0);
@@ -406,8 +411,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 return acc;
             }, {});
     
-        return { totalRevenue, totalAccommodationRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, staff, speedBoatTrips, reportGranularity]);
+        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
     
 
     return (
@@ -438,7 +443,10 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-slate-200">
                     <div className="bg-white p-4"><h4 className="font-semibold text-green-600 mb-2">Revenue Streams</h4>
                         <ul className="space-y-1 text-sm">
-                            <li className="flex justify-between"><span>Accommodation Revenue (Paid):</span> <span className="font-medium">{currencyFormat(reportData.totalAccommodationRevenue)}</span></li>
+                            <li className="flex justify-between"><span>Accommodation Revenue:</span> <span className="font-medium">{currencyFormat(reportData.totalAccommodationRevenue)}</span></li>
+                            <li className="flex justify-between pl-4 text-slate-500"><span>↳ from Walk-ins:</span><span className="font-medium">{currencyFormat(reportData.totalWalkInRevenue)}</span></li>
+                            <li className="flex justify-between pl-4 text-slate-500"><span>↳ from Bookings:</span><span className="font-medium">{currencyFormat(reportData.totalBookingRevenue)}</span></li>
+                            <li className="flex justify-between"><span>Platform Bulk Payments:</span> <span className="font-medium">{currencyFormat(reportData.totalPlatformPaymentsRevenue)}</span></li>
                             <li className="flex justify-between"><span>Activity Booking Revenue:</span> <span className="font-medium">{currencyFormat(reportData.totalActivityBookingRevenue)}</span></li>
                              <li className="flex justify-between pl-4 text-slate-500">
                                 <span>↳ from Extras:</span>
@@ -468,6 +476,55 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                     <tbody>
                         {Object.entries(reportData.companyDebts).map(([c, a]) => <tr key={c} className="bg-white border-b"><td className="px-6 py-4 font-medium">{c}</td><td className="px-6 py-4 font-bold text-red-600">{currencyFormat(a as number)}</td></tr>)}
                         {Object.keys(reportData.companyDebts).length === 0 && (<tr><td colSpan={2} className="text-center p-4">No payments due.</td></tr>)}
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Boat Ticket Financial Details - {reportPeriodTitle}</h3>
+                <table className="w-full text-sm">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th className="px-6 py-3">Date</th>
+                            <th className="px-6 py-3">Route</th>
+                            <th className="px-6 py-3">People</th>
+                            <th className="px-6 py-3">Total Price</th>
+                            <th className="px-6 py-3">Company Cost</th>
+                            <th className="px-6 py-3">Employee Comm.</th>
+                            <th className="px-6 py-3">Hostel Net Profit</th>
+                            <th className="px-6 py-3">Staff</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredBookings
+                            .filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat')
+                            .map(b => {
+                                const totalPrice = b.customerPrice - (b.discount || 0);
+                                const companyCost = b.itemCost || 0;
+                                const employeeCommission = b.employeeCommission || 0;
+                                const hostelNetProfit = totalPrice - companyCost - employeeCommission;
+
+                                return (
+                                    <tr key={b.id} className="border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4">{b.bookingDate}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800">{b.itemName}</td>
+                                        <td className="px-6 py-4 text-center">{b.numberOfPeople}</td>
+                                        <td className="px-6 py-4">{currencyFormat(totalPrice)}</td>
+                                        <td className="px-6 py-4 text-red-600">{currencyFormat(companyCost)}</td>
+                                        <td className="px-6 py-4 text-orange-600">{currencyFormat(employeeCommission)}</td>
+                                        <td className="px-6 py-4 font-bold text-green-600">{currencyFormat(hostelNetProfit)}</td>
+                                        <td className="px-6 py-4 text-slate-500">{staffMap.get(b.staffId) || 'N/A'}</td>
+                                    </tr>
+                                );
+                            })
+                        }
+                        {filteredBookings.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat').length === 0 && (
+                            <tr>
+                                <td colSpan={8} className="text-center p-4 text-slate-500">
+                                    No boat ticket bookings for this period.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>

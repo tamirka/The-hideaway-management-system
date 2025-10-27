@@ -139,13 +139,16 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
   currencySymbol?: string;
 }
 
-// Fix: Refactor component from a function declaration to a const with an arrow function to resolve JSX typing issues with generic components.
-const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
-  item,
-  onSave,
-  onDelete,
-  currencySymbol = 'THB',
-}: EditablePriceItemProps<T>): React.ReactElement => {
+// Fix: Refactored component to a standard function declaration to resolve JSX typing issues with generics.
+function EditablePriceItem<T extends { id: string; name: string; price: number }>(
+  props: EditablePriceItemProps<T>
+) {
+  const {
+    item,
+    onSave,
+    onDelete,
+    currencySymbol = 'THB',
+  } = props;
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -177,7 +180,7 @@ const EditablePriceItem = <T extends { id: string; name: string; price: number }
       </div>
     </div>
   );
-};
+}
 
 interface EditableSpeedBoatPriceItemProps {
   trip: SpeedBoatTrip;

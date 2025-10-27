@@ -1,9 +1,16 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Room, Bed } from '../types';
 import { BedStatus, EntityCondition, Role } from '../types';
 import Modal from './Modal';
 import Badge from './Badge';
-import { PlusIcon, EditIcon, TrashIcon, BedIcon, ClipboardDocumentCheckIcon, PrinterIcon } from '../constants';
+import { PlusIcon, EditIcon, TrashIcon, BedIcon, ClipboardDocumentCheckIcon, PrinterIcon, ArrowDownTrayIcon, PhotoIcon } from '../constants';
+
+declare global {
+  interface Window {
+    html2canvas: any;
+  }
+}
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id'> | Room) => void;
@@ -101,9 +108,11 @@ interface CleaningChecklistProps {
   beds: BedToClean[];
   onMarkAsClean: (roomId: string, bedId: string) => void;
   onPrint: () => void;
+  onDownloadCSV: () => void;
+  onDownloadImage: () => void;
 }
 
-const CleaningChecklist: React.FC<CleaningChecklistProps> = ({ beds, onMarkAsClean, onPrint }) => {
+const CleaningChecklist: React.FC<CleaningChecklistProps> = ({ beds, onMarkAsClean, onPrint, onDownloadCSV, onDownloadImage }) => {
   return (
     <div className="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-4 mb-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-y-3">
@@ -111,9 +120,17 @@ const CleaningChecklist: React.FC<CleaningChecklistProps> = ({ beds, onMarkAsCle
             <ClipboardDocumentCheckIcon className="w-6 h-6 text-amber-700"/>
             <h2 className="text-xl font-bold text-amber-800">Cleaning Checklist ({beds.length})</h2>
         </div>
-        <button onClick={onPrint} className="flex items-center justify-center sm:w-auto w-full px-3 py-1.5 bg-slate-600 text-white rounded-md text-sm hover:bg-slate-700 transition-colors">
-            <PrinterIcon className="w-4 h-4 mr-2"/> Print List for Staff
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+            <button onClick={onDownloadImage} className="flex items-center justify-center sm:w-auto w-full px-3 py-1.5 bg-slate-600 text-white rounded-md text-sm hover:bg-slate-700 transition-colors">
+                <PhotoIcon className="w-4 h-4 mr-2"/> Download as Image
+            </button>
+            <button onClick={onDownloadCSV} className="flex items-center justify-center sm:w-auto w-full px-3 py-1.5 bg-slate-600 text-white rounded-md text-sm hover:bg-slate-700 transition-colors">
+                <ArrowDownTrayIcon className="w-4 h-4 mr-2"/> Download List (CSV)
+            </button>
+            <button onClick={onPrint} className="flex items-center justify-center sm:w-auto w-full px-3 py-1.5 bg-slate-600 text-white rounded-md text-sm hover:bg-slate-700 transition-colors">
+                <PrinterIcon className="w-4 h-4 mr-2"/> Print List for Staff
+            </button>
+        </div>
       </div>
       <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
         {beds.map(bed => (
@@ -135,23 +152,23 @@ const CleaningChecklist: React.FC<CleaningChecklistProps> = ({ beds, onMarkAsCle
 };
 
 const PrintableCleaningList: React.FC<{ beds: BedToClean[] }> = ({ beds }) => (
-    <div className="hidden printable-area">
-        <h1 className="text-2xl font-bold mb-4">The Hideaway: Cleaning List</h1>
-        <p className="mb-4">Generated on: {new Date().toLocaleString()}</p>
-        <table className="w-full text-base" style={{ borderCollapse: 'collapse', border: '1px solid black' }}>
+    <div className="hidden printable-area bg-white p-4">
+        <h1 className="text-2xl font-bold mb-4 text-slate-800">The Hideaway: Cleaning List</h1>
+        <p className="mb-4 text-slate-600">Generated on: {new Date().toLocaleString()}</p>
+        <table className="w-full text-base border-collapse border border-slate-400">
             <thead>
                 <tr>
-                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Room Name</th>
-                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Bed</th>
-                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Cleaned (✓)</th>
+                    <th className="p-2 text-left border border-slate-300 bg-slate-100">Room Name</th>
+                    <th className="p-2 text-left border border-slate-300 bg-slate-100">Bed</th>
+                    <th className="p-2 text-left border border-slate-300 bg-slate-100">Cleaned (✓)</th>
                 </tr>
             </thead>
             <tbody>
                 {beds.map(bed => (
                     <tr key={bed.bedId}>
-                        <td className="p-2" style={{ border: '1px solid black' }}>{bed.roomName}</td>
-                        <td className="p-2" style={{ border: '1px solid black' }}>{bed.bedNumber}</td>
-                        <td className="p-2 h-12" style={{ border: '1px solid black', width: '120px' }}></td>
+                        <td className="p-2 border border-slate-300">{bed.roomName}</td>
+                        <td className="p-2 border border-slate-300">{bed.bedNumber}</td>
+                        <td className="p-2 h-12 w-32 border border-slate-300"></td>
                     </tr>
                 ))}
             </tbody>
@@ -231,6 +248,62 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
     window.print();
   };
 
+  const handleDownloadCSV = () => {
+    if (bedsToClean.length === 0) return;
+
+    const headers = ['Room Name', 'Bed Number'];
+    const csvContent = [
+      headers.join(','),
+      ...bedsToClean.map(bed => `"${bed.roomName.replace(/"/g, '""')}",${bed.bedNumber}`)
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      const today = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `cleaning-list-${today}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleDownloadImage = () => {
+    const printableArea = document.querySelector('.printable-area') as HTMLElement;
+    if (!printableArea || !window.html2canvas) {
+        alert("Could not generate image. The 'html2canvas' library might be missing.");
+        return;
+    }
+
+    // Temporarily make it visible for capture
+    printableArea.classList.remove('hidden');
+    printableArea.classList.add('capture-me');
+
+    window.html2canvas(printableArea, {
+        scale: 2, // for better quality
+        useCORS: true,
+        backgroundColor: '#ffffff',
+    }).then((canvas: HTMLCanvasElement) => {
+        const link = document.createElement('a');
+        link.download = `cleaning-list-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        // Hide it again
+        printableArea.classList.add('hidden');
+        printableArea.classList.remove('capture-me');
+    }).catch((error: any) => {
+        console.error("Error generating image:", error);
+        alert("An error occurred while generating the image.");
+        // Ensure it's hidden even if there's an error
+        printableArea.classList.add('hidden');
+        printableArea.classList.remove('capture-me');
+    });
+  };
+
 
   return (
     <div>
@@ -249,6 +322,8 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
           beds={bedsToClean}
           onMarkAsClean={(roomId, bedId) => handleBedStatusChange(roomId, bedId, BedStatus.Ready)}
           onPrint={handlePrint}
+          onDownloadCSV={handleDownloadCSV}
+          onDownloadImage={handleDownloadImage}
         />
       )}
 
