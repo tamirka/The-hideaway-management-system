@@ -157,8 +157,9 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         extras: Extra[];
         onSave: (booking: Booking) => void;
         onClose: () => void;
+        onDelete: (booking: Booking) => void;
     }
-    const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose }) => {
+    const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose, onDelete }) => {
         const [formData, setFormData] = useState<Booking>(booking);
 
         const availableItems = useMemo(() => {
@@ -217,6 +218,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 }
             });
             onSave(finalData);
+            onClose();
         };
         
         const canEditCosts = ['activity', 'private_tour'].includes(booking.itemType);
@@ -295,9 +297,21 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </select>
                     </div>
                 </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                    <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+                <div className="flex justify-between items-center pt-4 border-t mt-4">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            onDelete(formData);
+                            onClose();
+                        }}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center"
+                    >
+                       <TrashIcon className="w-4 h-4 mr-2"/> Delete Booking
+                    </button>
+                    <div className="flex space-x-2">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+                    </div>
                 </div>
             </form>
         );
@@ -347,7 +361,6 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const filteredUtilityRecords = useMemo(() => utilityRecords.filter(r => r.date.startsWith(currentFilter)), [utilityRecords, currentFilter]);
     const filteredSalaryAdvances = useMemo(() => salaryAdvances.filter(a => a.date.startsWith(currentFilter)), [salaryAdvances, currentFilter]);
     const filteredWalkInGuests = useMemo(() => walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter)), [walkInGuests, currentFilter]);
-    const filteredAccommodationBookings = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
 
     const reportData = useMemo(() => {
         const totalActivityBookingRevenue = filteredBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
@@ -361,8 +374,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
 
         const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
         const totalWalkInRevenue = filteredWalkInGuests.reduce((sum, g) => sum + g.amountPaid, 0);
-        const totalPlatformBookingRevenue = filteredAccommodationBookings.reduce((sum, b) => sum + b.amountPaid, 0);
-        const totalAccommodationRevenue = totalWalkInRevenue + totalPlatformBookingRevenue;
+        const totalPlatformPaymentsRevenue = filteredPlatformPayments.reduce((sum, p) => sum + p.amount, 0);
+        const totalAccommodationRevenue = totalWalkInRevenue + totalPlatformPaymentsRevenue;
         const totalRevenue = totalActivityBookingRevenue + totalExternalSales + totalAccommodationRevenue;
         
         const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
@@ -395,7 +408,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             }, {});
     
         return { totalRevenue, totalAccommodationRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
+    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, staff, speedBoatTrips, reportGranularity]);
     
 
     return (
@@ -510,7 +523,19 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 {viewingReceipt && <img src={viewingReceipt} alt="Receipt" className="w-full h-auto rounded-md" />}
             </Modal>
             <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title="Edit Full Booking Details">
-                {editingBooking && <FullEditBookingForm booking={editingBooking} staff={staff} paymentTypes={paymentTypes} activities={activities} speedBoatTrips={speedBoatTrips} taxiBoatOptions={taxiBoatOptions} extras={extras} onSave={onUpdateBooking} onClose={handleCloseModals} />}
+                {editingBooking && <FullEditBookingForm
+                    booking={editingBooking}
+                    staff={staff}
+                    paymentTypes={paymentTypes}
+                    activities={activities}
+                    speedBoatTrips={speedBoatTrips}
+                    taxiBoatOptions={taxiBoatOptions}
+                    extras={extras}
+                    onSave={onUpdateBooking}
+                    onClose={handleCloseModals}
+                        onDelete={(b) => onDeleteBooking(b.id)}   // ✅ FIXED
+
+                />}
             </Modal>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </div>
