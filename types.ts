@@ -117,6 +117,8 @@ export interface Activity {
   price: number;
   imageUrl: string;
   commission?: number;
+  type: 'Internal' | 'External';
+  companyCost?: number;
 }
 
 export interface SpeedBoatTrip {
@@ -174,7 +176,7 @@ export interface AccommodationBooking {
 export interface Booking {
   id: string;
   itemId: string;
-  itemType: 'activity' | 'speedboat' | 'external_activity' | 'private_tour' | 'extra' | 'taxi_boat';
+  itemType: 'activity' | 'speedboat' | 'private_tour' | 'extra' | 'taxi_boat';
   itemName: string;
   staffId: string;
   bookingDate: string; // YYYY-MM-DD

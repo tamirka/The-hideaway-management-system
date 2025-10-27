@@ -166,7 +166,6 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         const availableItems = useMemo(() => {
             switch (booking.itemType) {
                 case 'activity':
-                case 'external_activity':
                     return activities;
                 case 'speedboat':
                     return speedBoatTrips;
@@ -405,11 +404,11 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         // Fix: Add explicit type to reduce accumulator to fix type inference issue.
         const companyDebts = filteredBookings
             .filter(b => b.itemType === 'speedboat')
-            .reduce<Record<string, number>>((acc, booking) => {
+            .reduce((acc: Record<string, number>, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
-            }, {});
+            }, {} as Record<string, number>);
     
         return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
@@ -467,6 +466,55 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </ul>
                     </div>
                 </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Activity Financial Details - {reportPeriodTitle}</h3>
+                <table className="w-full text-sm">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th className="px-6 py-3">Date</th>
+                            <th className="px-6 py-3">Activity</th>
+                            <th className="px-6 py-3">People</th>
+                            <th className="px-6 py-3">Total Price</th>
+                            <th className="px-6 py-3">Company/Op. Cost</th>
+                            <th className="px-6 py-3">Employee Comm.</th>
+                            <th className="px-6 py-3">Hostel Net Profit</th>
+                            <th className="px-6 py-3">Staff</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredBookings
+                            .filter(b => b.itemType === 'activity')
+                            .map(b => {
+                                const totalPrice = b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0);
+                                const companyCost = b.itemCost || 0;
+                                const employeeCommission = b.employeeCommission || 0;
+                                const hostelNetProfit = totalPrice - companyCost - employeeCommission;
+
+                                return (
+                                    <tr key={b.id} className="border-b hover:bg-slate-50">
+                                        <td className="px-6 py-4">{b.bookingDate}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-800">{b.itemName}</td>
+                                        <td className="px-6 py-4 text-center">{b.numberOfPeople}</td>
+                                        <td className="px-6 py-4">{currencyFormat(totalPrice)}</td>
+                                        <td className="px-6 py-4 text-red-600">{currencyFormat(companyCost)}</td>
+                                        <td className="px-6 py-4 text-orange-600">{currencyFormat(employeeCommission)}</td>
+                                        <td className="px-6 py-4 font-bold text-green-600">{currencyFormat(hostelNetProfit)}</td>
+                                        <td className="px-6 py-4 text-slate-500">{staffMap.get(b.staffId) || 'N/A'}</td>
+                                    </tr>
+                                );
+                            })
+                        }
+                        {filteredBookings.filter(b => b.itemType === 'activity').length === 0 && (
+                            <tr>
+                                <td colSpan={8} className="text-center p-4 text-slate-500">
+                                    No activity bookings for this period.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
 
             {/* Other Tables... (Boat Company Payments, Platform Payments, External Sales, Staff Performance, All Bookings) */}

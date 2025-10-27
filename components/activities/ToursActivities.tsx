@@ -18,9 +18,11 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
         price: initialData?.price.toString() || '',
         imageUrl: initialData?.imageUrl || '',
         commission: initialData?.commission?.toString() || '',
+        type: initialData?.type || 'Internal',
+        companyCost: initialData?.companyCost?.toString() || '',
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         setFormData(prev => ({ ...prev, [id]: value }));
     };
@@ -31,6 +33,8 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
             ...formData,
             price: Number(formData.price) || 0,
             commission: Number(formData.commission) || undefined,
+            type: formData.type as 'Internal' | 'External',
+            companyCost: formData.type === 'External' ? Number(formData.companyCost) || undefined : undefined,
         };
         if (initialData) {
             onSave({ ...initialData, ...activityData });
@@ -41,6 +45,13 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="type" className="block text-sm font-medium text-slate-700">Activity Type</label>
+                <select id="type" value={formData.type} onChange={handleChange} className="mt-1 block w-full input-field">
+                    <option value="Internal">Internal (Hostel Tour)</option>
+                    <option value="External">External (Partner Tour)</option>
+                </select>
+            </div>
             <div><label htmlFor="name" className="block text-sm font-medium text-slate-700">Name</label><input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
             <div><label htmlFor="description" className="block text-sm font-medium text-slate-700">Description</label><textarea id="description" value={formData.description} onChange={handleChange} required rows={3} className="mt-1 block w-full input-field" /></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -48,8 +59,14 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
                     <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
                     <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
                 </div>
+                 {formData.type === 'External' && (
+                    <div>
+                        <label htmlFor="companyCost" className="block text-sm font-medium text-slate-700">Company Cost (per person)</label>
+                        <input type="number" id="companyCost" value={formData.companyCost} onChange={handleChange} placeholder="e.g. 500" className="mt-1 block w-full input-field" />
+                    </div>
+                )}
                 <div>
-                    <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (per person)</label>
+                    <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Employee Commission (per person)</label>
                     <input type="number" id="commission" value={formData.commission} onChange={handleChange} placeholder="e.g. 100" className="mt-1 block w-full input-field" />
                 </div>
             </div>
@@ -167,16 +184,18 @@ const PaymentFormFields: React.FC<{ paymentDetails: { method: string, receiptIma
 };
 
 
-const ActivityCard: React.FC<{ activity: Activity, onBook: (activity: Activity) => void, onBookExternal: (activity: Activity) => void }> = ({ activity, onBook, onBookExternal }) => (
+const ActivityCard: React.FC<{ activity: Activity, onBook: (activity: Activity) => void }> = ({ activity, onBook }) => (
     <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
         <img src={activity.imageUrl} alt={activity.name} className="w-full h-40 object-cover" />
         <div className="p-4 flex flex-col flex-grow">
-            <h3 className="text-lg font-bold text-slate-800">{activity.name}</h3>
+            <div className="flex justify-between items-start">
+              <h3 className="text-lg font-bold text-slate-800">{activity.name}</h3>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${activity.type === 'Internal' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>{activity.type}</span>
+            </div>
             <p className="text-sm text-slate-600 mt-1 flex-grow">{activity.description}</p>
             <p className="text-xl font-extrabold text-blue-600 mt-3">{activity.price} THB</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-                <button onClick={() => onBook(activity)} className="w-full px-3 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">Book Internal</button>
-                <button onClick={() => onBookExternal(activity)} className="w-full px-3 py-2 text-sm font-semibold text-blue-800 bg-blue-100 rounded-md hover:bg-blue-200 transition-colors">Book External</button>
+            <div className="mt-4">
+                <button onClick={() => onBook(activity)} className="w-full px-3 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors">Book Tour</button>
             </div>
         </div>
     </div>
@@ -189,7 +208,6 @@ interface ToursActivitiesProps {
     extras: Extra[];
     paymentTypes: PaymentType[];
     onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => void;
-    onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
     onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
     onAddActivity: (newActivity: Omit<Activity, 'id'>) => void;
     onUpdateActivity: (updatedActivity: Activity) => void;
@@ -197,12 +215,10 @@ interface ToursActivitiesProps {
     currentUserRole: Role;
 }
 
-const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, extras, paymentTypes, onBookActivity, onBookExternalActivity, onBookPrivateTour, onAddActivity, onUpdateActivity, onDeleteActivity, currentUserRole }) => {
+const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, extras, paymentTypes, onBookActivity, onBookPrivateTour, onAddActivity, onUpdateActivity, onDeleteActivity, currentUserRole }) => {
     // Modal States
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
     const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-    const [isExternalBookingModalOpen, setIsExternalBookingModalOpen] = useState(false);
-    const [selectedExternalActivity, setSelectedExternalActivity] = useState<Activity | null>(null);
     const [isPrivateTourModalOpen, setIsPrivateTourModalOpen] = useState(false);
     const [isManageActivitiesModalOpen, setIsManageActivitiesModalOpen] = useState(false);
     const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -264,26 +280,13 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
         setSelectedActivity(activity);
         setIsBookingModalOpen(true);
     };
-    const handleOpenExternalBookingModal = (activity: Activity) => {
-        resetCommonStates();
-        setEmployeeCommission(activity.commission?.toString() || '');
-        setSelectedExternalActivity(activity);
-        setIsExternalBookingModalOpen(true);
-    };
     const handleOpenPrivateTourModal = () => { resetCommonStates(); setIsPrivateTourModalOpen(true); };
-    const handleCloseModals = () => { setIsBookingModalOpen(false); setIsExternalBookingModalOpen(false); setIsPrivateTourModalOpen(false); setSelectedActivity(null); setSelectedExternalActivity(null); setIsManageActivitiesModalOpen(false); setEditingActivity(null); setShowActivityForm(false);};
+    const handleCloseModals = () => { setIsBookingModalOpen(false); setIsPrivateTourModalOpen(false); setSelectedActivity(null); setIsManageActivitiesModalOpen(false); setEditingActivity(null); setShowActivityForm(false);};
     
     const handleBookInternalActivity = () => {
         if (!selectedActivity || !selectedStaffId) return alert('Please select a staff member.');
         const { list: extrasList } = calculateExtras(selectedExtras);
         onBookActivity(selectedActivity.id, selectedStaffId, Number(numberOfPeople), Number(discount) || 0, extrasList, paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(fuelCost) || undefined, Number(captainCost) || undefined, Number(employeeCommission) || undefined);
-        handleCloseModals();
-    };
-
-    const handleBookExternal = () => {
-        if (!selectedExternalActivity || !selectedStaffId) return alert('Please select a staff member.');
-        const { list: extrasList } = calculateExtras(selectedExtras);
-        onBookExternalActivity(selectedExternalActivity.id, selectedStaffId, Number(numberOfPeople), Number(discount) || 0, extrasList, paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(employeeCommission) || undefined);
         handleCloseModals();
     };
 
@@ -317,7 +320,7 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
                 )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {activities.map(act => <ActivityCard key={act.id} activity={act} onBook={handleOpenBookingModal} onBookExternal={handleOpenExternalBookingModal} />)}
+                {activities.map(act => <ActivityCard key={act.id} activity={act} onBook={handleOpenBookingModal} />)}
                 <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-md p-6 flex flex-col justify-center items-center text-white">
                     <h3 className="text-xl font-bold">Private Tours</h3>
                     <p className="mt-2 text-center text-sm">Offer a custom experience for your guests.</p>
@@ -328,7 +331,7 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
             <Modal isOpen={isBookingModalOpen} onClose={handleCloseModals} title={`Book: ${selectedActivity?.name}`}>
                 <div className="space-y-6">
                     <div><label htmlFor="bookingDate" className="block text-sm font-medium">Booking Date</label><input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" /></div>
-                    <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} discount={discount} onDiscountChange={setDiscount} fuelCost={fuelCost} onFuelCostChange={setFuelCost} captainCost={captainCost} onCaptainCostChange={setCaptainCost} includeDiscount includeFuelAndCaptain includePeopleCount />
+                    <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} discount={discount} onDiscountChange={setDiscount} fuelCost={fuelCost} onFuelCostChange={setFuelCost} captainCost={captainCost} onCaptainCostChange={setCaptainCost} includeDiscount includeFuelAndCaptain={selectedActivity?.type === 'Internal'} includePeopleCount />
                     {currentUserRole === Role.Admin && (
                         <div>
                             <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
@@ -337,41 +340,18 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
                     )}
                     <ExtrasFormFields extras={bookableExtras} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
-                    {(() => {
+                    {selectedActivity && (() => {
                         const numPeople = Number(numberOfPeople) || 1; 
                         const baseTotal = (selectedActivity?.price || 0) * numPeople; 
                         const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); 
                         const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
                         const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
-                        const hostelNet = finalTotal - totalEmpCommission - (Number(fuelCost) || 0) - (Number(captainCost) || 0);
-                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedActivity?.name} ({numPeople} x {currencyFormat(selectedActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && totalEmpCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span><span>-{currencyFormat(totalEmpCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
+                        const itemCost = selectedActivity.type === 'Internal' ? (Number(fuelCost) || 0) + (Number(captainCost) || 0) : (selectedActivity.companyCost || 0) * numPeople;
+                        const hostelNet = finalTotal - totalEmpCommission - itemCost;
+
+                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedActivity?.name} ({numPeople} x {currencyFormat(selectedActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && itemCost > 0 && <div className="flex justify-between text-red-600"><span>{selectedActivity.type === 'Internal' ? 'Operational Cost' : 'Company Cost'}</span><span>-{currencyFormat(itemCost)}</span></div>}{currentUserRole === Role.Admin && totalEmpCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission</span><span>-{currencyFormat(totalEmpCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Profit</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
                     })()}
                     <div className="flex justify-end pt-4"><button onClick={handleBookInternalActivity} className="px-4 py-2 bg-blue-600 text-white rounded-md">Confirm Booking</button></div>
-                </div>
-            </Modal>
-
-            <Modal isOpen={isExternalBookingModalOpen} onClose={handleCloseModals} title={`Book External: ${selectedExternalActivity?.name}`}>
-                 <div className="space-y-6">
-                    <div><label htmlFor="bookingDate" className="block text-sm font-medium">Booking Date</label><input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" /></div>
-                    <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} discount={discount} onDiscountChange={setDiscount} includeDiscount includePeopleCount />
-                    {currentUserRole === Role.Admin && (
-                        <div>
-                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
-                            <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
-                        </div>
-                    )}
-                    <ExtrasFormFields extras={bookableExtras} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
-                    <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
-                     {(() => {
-                        const numPeople = Number(numberOfPeople) || 1; 
-                        const baseTotal = (selectedExternalActivity?.price || 0) * numPeople; 
-                        const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); 
-                        const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
-                        const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
-                        const hostelNet = finalTotal - totalEmpCommission;
-                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedExternalActivity?.name} ({numPeople} x {currencyFormat(selectedExternalActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && totalEmpCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span><span>-{currencyFormat(totalEmpCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
-                    })()}
-                    <div className="flex justify-end pt-4"><button onClick={handleBookExternal} className="px-4 py-2 bg-blue-600 text-white rounded-md">Confirm Booking</button></div>
                 </div>
             </Modal>
             

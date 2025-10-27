@@ -54,7 +54,6 @@ interface ActivitiesManagementProps {
   paymentTypes: PaymentType[];
   onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => void;
   onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
-  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
   onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
   onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number, employeeCommission?: number) => void;
   onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
@@ -121,7 +120,6 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         extras={props.extras}
                         paymentTypes={props.paymentTypes}
                         onBookActivity={props.onBookActivity}
-                        onBookExternalActivity={props.onBookExternalActivity}
                         onBookPrivateTour={props.onBookPrivateTour}
                         onAddActivity={props.onAddActivity}
                         onUpdateActivity={props.onUpdateActivity}

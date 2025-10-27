@@ -58,6 +58,7 @@ const MOCK_ACTIVITIES_DATA: Activity[] = [
     {
         id: 'activity1',
         name: 'Short Trip',
+        type: 'Internal',
         description: 'A guided hike through lush jungle trails to a stunning, secluded waterfall. Includes a packed lunch and swimming time.',
         price: 700,
         imageUrl: 'https://placehold.co/600x400/22c55e/ffffff?text=Short+Trip',
@@ -66,14 +67,17 @@ const MOCK_ACTIVITIES_DATA: Activity[] = [
     {
         id: 'activity2',
         name: 'Far Trip',
+        type: 'External',
         description: 'Enjoy a relaxing evening on the water with complimentary drinks and snacks as you watch the beautiful sunset over the ocean.',
         price: 800,
         imageUrl: 'https://placehold.co/600x400/f97316/ffffff?text=Far+Trip',
-        commission: 120
+        commission: 120,
+        companyCost: 600,
     },
     {
         id: 'activity3',
         name: 'Sunrise Trip',
+        type: 'Internal',
         description: 'Visit a bustling local market to source fresh ingredients, then learn to cook authentic regional dishes with a local chef.',
         price: 700,
         imageUrl: 'https://placehold.co/600x400/3b82f6/ffffff?text=Sunrise+Trip'
@@ -239,6 +243,15 @@ const App: React.FC = () => {
     const extrasTotal = extras.reduce((sum, extra) => sum + extra.price, 0);
     const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
     
+    let itemCost: number | undefined = undefined;
+    if (activity.type === 'Internal') {
+        const internalCost = (fuelCost || 0) + (captainCost || 0);
+        if (internalCost > 0) itemCost = internalCost;
+    } else { // External
+        const externalCost = (activity.companyCost || 0) * numberOfPeople;
+        if (externalCost > 0) itemCost = externalCost;
+    }
+
     const newBooking: Booking = {
         id: generateId(),
         itemId: activityId,
@@ -255,7 +268,7 @@ const App: React.FC = () => {
         receiptImage,
         fuelCost,
         captainCost,
-        itemCost: (fuelCost || 0) + (captainCost || 0),
+        itemCost: itemCost,
         employeeCommission: totalEmployeeCommission,
     };
 
@@ -264,43 +277,15 @@ const App: React.FC = () => {
     const staffMember = staff.find(s => s.id === staffId);
     const basePrice = activity.price * numberOfPeople;
     const finalPrice = basePrice + extrasTotal - (discount || 0);
-    alert(`Booking confirmed for ${activity.name} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\n\nFuel Cost: ${fuelCost || 0} THB\nCaptain Cost: ${captainCost || 0} THB\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
-  };
-
-  // Booking Handler for External Activity
-  const handleBookExternalActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => {
-    const activity = activities.find(a => a.id === activityId);
-    if (!activity) {
-        console.error("Activity not found!");
-        return;
+    
+    let costBreakdown = '';
+    if (activity.type === 'Internal') {
+        costBreakdown = `\nFuel Cost: ${fuelCost || 0} THB\nCaptain Cost: ${captainCost || 0} THB`;
+    } else {
+        costBreakdown = `\nCompany Cost: ${itemCost || 0} THB`;
     }
 
-    const extrasTotal = extras.reduce((sum, extra) => sum + extra.price, 0);
-    const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
-    
-    const newBooking: Booking = {
-        id: generateId(),
-        itemId: activityId,
-        itemType: 'external_activity',
-        itemName: activity.name,
-        staffId,
-        bookingDate: bookingDate,
-        customerPrice: activity.price * numberOfPeople,
-        numberOfPeople,
-        discount,
-        extras,
-        extrasTotal,
-        paymentMethod,
-        receiptImage,
-        employeeCommission: totalEmployeeCommission,
-    };
-
-    setBookings(prev => [...prev, newBooking]);
-    
-    const staffMember = staff.find(s => s.id === staffId);
-    const basePrice = activity.price * numberOfPeople;
-    const finalPrice = basePrice + extrasTotal - (discount || 0);
-    alert(`External booking for ${activity.name} by ${staffMember?.name} confirmed!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
+    alert(`Booking confirmed for ${activity.name} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}${costBreakdown}\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
   };
   
   // Booking Handler for Speed Boat
@@ -597,7 +582,6 @@ const App: React.FC = () => {
                     paymentTypes={paymentTypes}
                     onBookActivity={handleBookActivity} 
                     onBookSpeedBoat={handleBookSpeedBoatTrip} 
-                    onBookExternalActivity={handleBookExternalActivity} 
                     onBookPrivateTour={handleBookPrivateTour}
                     onBookStandaloneExtra={handleBookStandaloneExtra}
                     onBookTaxiBoat={handleBookTaxiBoat}

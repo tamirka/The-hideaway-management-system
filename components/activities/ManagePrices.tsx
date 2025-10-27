@@ -360,7 +360,7 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Activity Prices</h2><button onClick={() => setModal('activity')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Activity</button></div>
-                <div className="space-y-3">{activities.map(activity => ( <EditablePriceItem<Activity> key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} /> ))}</div>
+                <div className="space-y-3">{activities.map(activity => ( <EditablePriceItem key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Speed Boat Prices</h2><button onClick={() => setModal('speedboat')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Speed Boat</button></div>
@@ -368,7 +368,7 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Taxi Boat Prices</h2><button onClick={() => setModal('taxi')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Taxi Option</button></div>
-                <div className="space-y-3">{taxiBoatOptions.map(option => ( <EditablePriceItem<TaxiBoatOption> key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} /> ))}</div>
+                <div className="space-y-3">{taxiBoatOptions.map(option => ( <EditablePriceItem key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Extras Prices</h2><button onClick={() => setModal('extra')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Extra</button></div>
