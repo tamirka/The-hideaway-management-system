@@ -103,7 +103,7 @@ interface SellExtrasProps {
     extras: Extra[];
     staff: Staff[];
     paymentTypes: PaymentType[];
-    onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
+    onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number) => void;
     onAddExtra: (newExtra: Omit<Extra, 'id'>) => void;
     onUpdateExtra: (updatedExtra: Extra) => void;
     onDeleteExtra: (extraId: string) => void;
@@ -127,6 +127,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
+    const [numberOfHours, setNumberOfHours] = useState('1');
 
     useEffect(() => {
         setPaymentDetails(initialPaymentState);
@@ -136,6 +137,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
         setSelectedStaffId('');
         setPaymentDetails(initialPaymentState);
         setBookingDate(new Date().toISOString().split('T')[0]);
+        setNumberOfHours('1');
     };
 
     const handleOpenExtraModal = (extra: Extra) => {
@@ -154,7 +156,8 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
 
     const handleBookExtra = () => {
         if (!selectedExtra || !selectedStaffId) return alert('Please select a staff member.');
-        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage);
+        const quantity = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
+        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage, quantity);
         handleCloseModals();
     };
 
@@ -202,8 +205,41 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                         <label htmlFor="bookingDate" className="block text-sm font-medium text-slate-700">Sale Date</label>
                         <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
                     </div>
+                    
+                    {selectedExtra?.id === 'paddle_hour' && (
+                        <div>
+                            <label htmlFor="numberOfHours" className="block text-sm font-medium text-slate-700">Number of Hours</label>
+                            <input 
+                                type="number" 
+                                id="numberOfHours" 
+                                value={numberOfHours} 
+                                onChange={(e) => setNumberOfHours(e.target.value)} 
+                                min="1" 
+                                required 
+                                className="mt-1 block w-full input-field" 
+                            />
+                        </div>
+                    )}
+
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} currentUserRole={Role.Admin} />
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
+                    
+                    {selectedExtra && (() => {
+                        const hours = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
+                        const total = (selectedExtra.price || 0) * hours;
+                        return (
+                            <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                                <h4 className="text-lg font-semibold text-slate-800 mb-2">Sale Summary</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between font-bold text-base">
+                                        <span>Total Price</span>
+                                        <span>{`฿${total.toLocaleString()}`}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <div className="flex justify-end pt-4">
                         <button onClick={handleBookExtra} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Sale</button>
                     </div>

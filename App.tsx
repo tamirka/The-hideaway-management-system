@@ -81,18 +81,18 @@ const MOCK_ACTIVITIES_DATA: Activity[] = [
 ];
 
 const MOCK_SPEEDBOAT_DATA: SpeedBoatTrip[] = [
-    { id: 'sb1', route: 'Lipe - Pakbara', company: 'Satun Pakbara', price: 600, cost: 450 },
-    { id: 'sb1b', route: 'Lipe - Pakbara', company: 'Bundhaya', price: 650, cost: 500 },
-    { id: 'sb2', route: 'Lipe - Langkawi', company: 'Ferry Langkawi', price: 1400, cost: 1200 },
+    { id: 'sb1', route: 'Lipe - Pakbara', company: 'Satun Pakbara', price: 600, cost: 450, commission: 50 },
+    { id: 'sb1b', route: 'Lipe - Pakbara', company: 'Bundhaya', price: 650, cost: 500, commission: 50 },
+    { id: 'sb2', route: 'Lipe - Langkawi', company: 'Ferry Langkawi', price: 1400, cost: 1200, commission: 100 },
     { id: 'sb3', route: 'Lipe - Hatyai (speed boat + minivan)', company: 'Tigerline', price: 850, cost: 600 },
-    { id: 'sb4', route: 'Lipe - Phuket (speed boat + minivan)', company: 'Bundhaya Speed Boat', price: 2450, cost: 2000 },
+    { id: 'sb4', route: 'Lipe - Phuket (speed boat + minivan)', company: 'Bundhaya Speed Boat', price: 2450, cost: 2000, commission: 150 },
     { id: 'sb5', route: 'Lipe - Lanta', company: 'Satun Pakbara', price: 1700, cost: 1400 },
-    { id: 'sb6', route: 'Lipe - Phiphi (speed boat)', company: 'Tigerline', price: 2300, cost: 1700 },
+    { id: 'sb6', route: 'Lipe - Phiphi (speed boat)', company: 'Tigerline', price: 2300, cost: 1700, commission: 200 },
 ];
 
 const MOCK_TAXI_BOAT_OPTIONS: TaxiBoatOption[] = [
-    { id: 'taxi1', name: 'One Way', price: 200 },
-    { id: 'taxi2', name: 'Round Trip', price: 350 },
+    { id: 'taxi1', name: 'One Way', price: 200, commission: 20 },
+    { id: 'taxi2', name: 'Round Trip', price: 350, commission: 35 },
 ];
 
 const MOCK_EXTRAS_DATA: Extra[] = [
@@ -237,6 +237,7 @@ const App: React.FC = () => {
     }
 
     const extrasTotal = extras.reduce((sum, extra) => sum + extra.price, 0);
+    const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
     
     const newBooking: Booking = {
         id: generateId(),
@@ -255,7 +256,7 @@ const App: React.FC = () => {
         fuelCost,
         captainCost,
         itemCost: (fuelCost || 0) + (captainCost || 0),
-        employeeCommission,
+        employeeCommission: totalEmployeeCommission,
     };
 
     setBookings(prev => [...prev, newBooking]);
@@ -263,7 +264,7 @@ const App: React.FC = () => {
     const staffMember = staff.find(s => s.id === staffId);
     const basePrice = activity.price * numberOfPeople;
     const finalPrice = basePrice + extrasTotal - (discount || 0);
-    alert(`Booking confirmed for ${activity.name} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\n\nFuel Cost: ${fuelCost || 0} THB\nCaptain Cost: ${captainCost || 0} THB\nEmployee Commission: ${employeeCommission || 0} THB`);
+    alert(`Booking confirmed for ${activity.name} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\n\nFuel Cost: ${fuelCost || 0} THB\nCaptain Cost: ${captainCost || 0} THB\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
   };
 
   // Booking Handler for External Activity
@@ -275,6 +276,7 @@ const App: React.FC = () => {
     }
 
     const extrasTotal = extras.reduce((sum, extra) => sum + extra.price, 0);
+    const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
     
     const newBooking: Booking = {
         id: generateId(),
@@ -290,7 +292,7 @@ const App: React.FC = () => {
         extrasTotal,
         paymentMethod,
         receiptImage,
-        employeeCommission,
+        employeeCommission: totalEmployeeCommission,
     };
 
     setBookings(prev => [...prev, newBooking]);
@@ -298,18 +300,18 @@ const App: React.FC = () => {
     const staffMember = staff.find(s => s.id === staffId);
     const basePrice = activity.price * numberOfPeople;
     const finalPrice = basePrice + extrasTotal - (discount || 0);
-    alert(`External booking for ${activity.name} by ${staffMember?.name} confirmed!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\nEmployee Commission: ${employeeCommission || 0} THB`);
+    alert(`External booking for ${activity.name} by ${staffMember?.name} confirmed!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${activity.price} THB = ${basePrice} THB\nExtras: ${extrasTotal} THB\nDiscount: ${discount || 0} THB\nFinal Price: ${finalPrice} THB\nPayment Method: ${paymentMethod}\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
   };
   
   // Booking Handler for Speed Boat
-  const handleBookSpeedBoatTrip = (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
+  const handleBookSpeedBoatTrip = (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => {
     const trip = speedBoatTrips.find(t => t.id === tripId);
     if (!trip) {
         console.error("Speed boat trip not found!");
         return;
     }
 
-    const totalProfit = (trip.price - trip.cost) * numberOfPeople;
+    const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
     
     const newBooking: Booking = {
         id: generateId(),
@@ -323,13 +325,14 @@ const App: React.FC = () => {
         paymentMethod,
         receiptImage,
         itemCost: trip.cost * numberOfPeople,
+        employeeCommission: totalEmployeeCommission,
     };
 
     setBookings(prev => [...prev, newBooking]);
     
     const staffMember = staff.find(s => s.id === staffId);
     const finalPrice = trip.price * numberOfPeople;
-    alert(`Booking confirmed for ${trip.route} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${trip.price} THB = ${finalPrice} THB\nPayment Method: ${paymentMethod}\n\nTotal Profit: ${totalProfit} THB`);
+    alert(`Booking confirmed for ${trip.route} by ${staffMember?.name}!\n\nBooking Date: ${bookingDate}\n${numberOfPeople} person(s) x ${trip.price} THB = ${finalPrice} THB\nPayment Method: ${paymentMethod}\n\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
   };
 
   // Booking Handler for Private Tour
@@ -359,28 +362,38 @@ const App: React.FC = () => {
     };
 
     // Booking Handler for Standalone Extra
-    const handleBookStandaloneExtra = (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
+    const handleBookStandaloneExtra = (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity: number = 1) => {
+        const finalPrice = extra.price * quantity;
+        
+        let itemName = extra.name;
+        if (extra.id === 'paddle_hour') {
+            const hoursText = quantity === 1 ? '1 hour' : `${quantity} hours`;
+            itemName = `${extra.name} (${hoursText})`;
+        }
+
         const newBooking: Booking = {
             id: generateId(),
             itemId: extra.id,
             itemType: 'extra',
-            itemName: extra.name,
+            itemName: itemName,
             staffId,
             bookingDate: bookingDate,
-            customerPrice: extra.price,
-            numberOfPeople: 1,
+            customerPrice: finalPrice,
+            numberOfPeople: quantity, // Using this field to store quantity/hours
             paymentMethod,
             receiptImage,
         };
         setBookings(prev => [...prev, newBooking]);
         const staffMember = staff.find(s => s.id === staffId);
-        alert(`Sold ${extra.name} for ${extra.price} THB by ${staffMember?.name} on ${bookingDate}.`);
+        alert(`Sold ${itemName} for ${finalPrice} THB by ${staffMember?.name} on ${bookingDate}.`);
     };
 
     // Booking Handler for Taxi Boat
-    const handleBookTaxiBoat = (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => {
+    const handleBookTaxiBoat = (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => {
         const taxiOption = taxiBoatOptions.find(t => t.id === taxiOptionId);
         if (!taxiOption) return;
+
+        const totalEmployeeCommission = (employeeCommission || 0) * numberOfPeople;
 
         const newBooking: Booking = {
             id: generateId(),
@@ -389,14 +402,15 @@ const App: React.FC = () => {
             itemName: `Taxi Boat - ${taxiOption.name}`,
             staffId,
             bookingDate: bookingDate,
-            customerPrice: taxiOption.price,
+            customerPrice: taxiOption.price * numberOfPeople,
             numberOfPeople,
             paymentMethod,
             receiptImage,
+            employeeCommission: totalEmployeeCommission,
         };
         setBookings(prev => [...prev, newBooking]);
         const staffMember = staff.find(s => s.id === staffId);
-        alert(`Taxi Boat (${taxiOption.name}) booked for ${numberOfPeople} person(s) at ${taxiOption.price} THB by ${staffMember?.name} on ${bookingDate}.`);
+        alert(`Taxi Boat (${taxiOption.name}) booked for ${numberOfPeople} person(s) at ${taxiOption.price * numberOfPeople} THB by ${staffMember?.name} on ${bookingDate}.\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
     };
 
     // Update handler for Bookings (e.g., commissions)

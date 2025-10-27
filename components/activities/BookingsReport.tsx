@@ -267,14 +267,14 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
-        // Fix: Correctly typed the reduce accumulator with a type assertion to ensure `Object.entries` infers the correct value type.
+        // Fix: Correctly typed the reduce accumulator to ensure Object.entries infers the correct value type.
         const companyDebts = filteredBookings
             .filter(b => b.itemType === 'speedboat')
-            .reduce((acc, booking) => {
+            .reduce((acc: Record<string, number>, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
-            }, {} as Record<string, number>);
+            }, {});
     
         return { totalRevenue, totalAccommodationRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);

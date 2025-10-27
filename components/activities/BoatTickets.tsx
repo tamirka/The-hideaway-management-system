@@ -17,6 +17,7 @@ const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, 
         company: initialData?.company || '',
         price: initialData?.price.toString() || '',
         cost: initialData?.cost.toString() || '',
+        commission: initialData?.commission?.toString() || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,6 +31,7 @@ const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, 
             ...formData,
             price: Number(formData.price) || 0,
             cost: Number(formData.cost) || 0,
+            commission: Number(formData.commission) || undefined,
         };
         if (initialData) {
             onSave({ ...initialData, ...tripData });
@@ -58,6 +60,10 @@ const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, 
                     <label htmlFor="cost" className="block text-sm font-medium text-slate-700">Cost (THB)</label>
                     <input type="number" id="cost" value={formData.cost} onChange={handleChange} required className="mt-1 block w-full input-field" />
                 </div>
+                 <div className="md:col-span-2">
+                    <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (per person)</label>
+                    <input type="number" id="commission" value={formData.commission} onChange={handleChange} className="mt-1 block w-full input-field" />
+                </div>
             </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
@@ -78,6 +84,7 @@ const TaxiBoatOptionForm: React.FC<TaxiBoatOptionFormProps> = ({ onSave, onClose
     const [formData, setFormData] = useState({
         name: initialData?.name || ('One Way' as 'One Way' | 'Round Trip'),
         price: initialData?.price.toString() || '',
+        commission: initialData?.commission?.toString() || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -90,6 +97,7 @@ const TaxiBoatOptionForm: React.FC<TaxiBoatOptionFormProps> = ({ onSave, onClose
         const optionData = {
             name: formData.name as 'One Way' | 'Round Trip',
             price: Number(formData.price) || 0,
+            commission: Number(formData.commission) || undefined,
         };
         if (initialData) {
             onSave({ ...initialData, ...optionData });
@@ -111,6 +119,10 @@ const TaxiBoatOptionForm: React.FC<TaxiBoatOptionFormProps> = ({ onSave, onClose
             <div>
                 <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
                 <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
+            </div>
+            <div>
+                <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (per person)</label>
+                <input type="number" id="commission" value={formData.commission} onChange={handleChange} className="mt-1 block w-full input-field" />
             </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
@@ -178,8 +190,8 @@ interface BoatTicketsProps {
     taxiBoatOptions: TaxiBoatOption[];
     staff: Staff[];
     paymentTypes: PaymentType[];
-    onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
-    onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
+    onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
+    onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
     onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
     onUpdateSpeedBoatTrip: (updatedTrip: SpeedBoatTrip) => void;
     onDeleteSpeedBoatTrip: (tripId: string) => void;
@@ -215,20 +227,31 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     const [numberOfPeople, setNumberOfPeople] = useState('1');
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
+    const [employeeCommission, setEmployeeCommission] = useState('');
+
 
     useEffect(() => {
         setPaymentDetails(initialPaymentState);
     }, [initialPaymentState]);
-
-    const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
     const resetFormStates = () => {
         setSelectedStaffId('');
         setNumberOfPeople('1');
         setBookingDate(new Date().toISOString().split('T')[0]);
         setPaymentDetails(initialPaymentState);
+        setEmployeeCommission('');
     };
     
+    useEffect(() => {
+        if (isSpeedBoatModalOpen && selectedTrip) {
+            setEmployeeCommission(selectedTrip.commission?.toString() || '0');
+        } else if (isTaxiModalOpen && selectedTaxiOption) {
+            setEmployeeCommission(selectedTaxiOption.commission?.toString() || '0');
+        }
+    }, [isSpeedBoatModalOpen, selectedTrip, isTaxiModalOpen, selectedTaxiOption]);
+
+    const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
     const handleCloseModals = () => {
         setIsSpeedBoatModalOpen(false);
         setIsTaxiModalOpen(false);
@@ -243,16 +266,16 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
         setShowTaxiForm(false);
     };
     
-    // Fix: Correctly typed the reduce accumulator with a type assertion to ensure `Object.entries` infers the correct value type.
+    // Fix: Correctly typed the reduce accumulator to ensure Object.entries infers the correct value type.
     const groupedSpeedBoatTrips = useMemo(() => {
-        return speedBoatTrips.reduce((acc, trip) => {
+        return speedBoatTrips.reduce((acc: Record<string, SpeedBoatTrip[]>, trip) => {
             const { route } = trip;
             if (!acc[route]) {
                 acc[route] = [];
             }
             acc[route].push(trip);
             return acc;
-        }, {} as Record<string, SpeedBoatTrip[]>);
+        }, {});
     }, [speedBoatTrips]);
 
     const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {
@@ -271,13 +294,13 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     
     const handleBookSpeedBoat = () => {
         if (!selectedTrip || !selectedStaffId) return alert('Please select a staff member.');
-        onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage);
+        onBookSpeedBoat(selectedTrip.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(employeeCommission) || undefined);
         handleCloseModals();
     };
 
     const handleBookTaxi = () => {
         if (!selectedTaxiOption || !selectedStaffId) return alert('Please select a staff member.');
-        onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage);
+        onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage, Number(employeeCommission) || undefined);
         handleCloseModals();
     };
 
@@ -379,10 +402,19 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                         </select>
                     </div>
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} includePeopleCount />
+                    {currentUserRole === Role.Admin && (
+                        <div>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
+                            <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                    )}
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                      {(() => {
                         const numPeople = Number(numberOfPeople) || 1;
                         const finalTotal = (selectedTrip?.price || 0) * numPeople;
+                        const totalProfit = selectedTrip ? (selectedTrip.price - selectedTrip.cost) * numPeople : 0;
+                        const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
+                        const hostelNet = totalProfit - totalEmpCommission;
 
                         return (
                             <div className="mt-6 p-4 bg-slate-50 rounded-lg">
@@ -392,10 +424,22 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                                         <span>Total</span>
                                         <span>{currencyFormat(finalTotal)}</span>
                                     </div>
-                                    {selectedTrip && (
-                                        <p className="text-xs text-slate-500 text-right">
-                                            Hostel Profit: {currencyFormat((selectedTrip.price - selectedTrip.cost) * numPeople)}
-                                        </p>
+                                    {currentUserRole === Role.Admin && (
+                                        <>
+                                            <p className="text-xs text-slate-500 text-right">
+                                                Hostel Gross Profit: {currencyFormat(totalProfit)}
+                                            </p>
+                                            {totalEmpCommission > 0 && (
+                                                <div className="flex justify-between text-orange-600">
+                                                    <span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span>
+                                                    <span>-{currencyFormat(totalEmpCommission)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between font-semibold text-green-600 text-base border-t mt-1 pt-1">
+                                                <span>Hostel Net Profit</span>
+                                                <span>{currencyFormat(hostelNet)}</span>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -414,8 +458,36 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                         <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
                     </div>
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} includePeopleCount />
+                    {currentUserRole === Role.Admin && (
+                        <div>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
+                            <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                    )}
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
-                    <div className="flex justify-end pt-4">
+                     {(() => {
+                        const numPeople = Number(numberOfPeople) || 1;
+                        const finalTotal = (selectedTaxiOption?.price || 0) * numPeople;
+                        const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
+                        return (
+                            <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                                <h4 className="text-lg font-semibold text-slate-800 mb-2">Booking Summary</h4>
+                                <div className="space-y-1 text-sm">
+                                    <div className="flex justify-between font-bold text-base">
+                                        <span>Total</span>
+                                        <span>{currencyFormat(finalTotal)}</span>
+                                    </div>
+                                    {currentUserRole === Role.Admin && totalEmpCommission > 0 && (
+                                        <div className="flex justify-between text-orange-600">
+                                            <span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span>
+                                            <span>-{currencyFormat(totalEmpCommission)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
+                     <div className="flex justify-end pt-4">
                         <button onClick={handleBookTaxi} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
                     </div>
                 </div>
@@ -445,7 +517,10 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                             <div key={trip.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm border">
                                 <div>
                                     <p className="font-medium text-slate-800">{trip.route}</p>
-                                    <p className="text-xs text-slate-500">{trip.company} - Price: {trip.price} THB, Cost: {trip.cost} THB</p>
+                                    <p className="text-xs text-slate-500">
+                                        {trip.company} - Price: {trip.price} THB, Cost: {trip.cost} THB
+                                        {trip.commission ? ` | Commission: ${trip.commission} THB` : ''}
+                                    </p>
                                 </div>
                                 <div className="flex space-x-3">
                                     <button onClick={() => handleEditTrip(trip)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
@@ -480,7 +555,10 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                             <div key={option.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm border">
                                 <div>
                                     <p className="font-medium text-slate-800">{option.name}</p>
-                                    <p className="text-xs text-slate-500">Price: {option.price} THB</p>
+                                    <p className="text-xs text-slate-500">
+                                        Price: {option.price} THB
+                                        {option.commission ? ` | Commission: ${option.commission} THB` : ''}
+                                    </p>
                                 </div>
                                 <div className="flex space-x-3">
                                     <button onClick={() => handleEditTaxiOption(option)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>

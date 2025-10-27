@@ -125,12 +125,14 @@ export interface SpeedBoatTrip {
   company: string;
   price: number;
   cost: number;
+  commission?: number;
 }
 
 export interface TaxiBoatOption {
   id: string;
   name: 'One Way' | 'Round Trip';
   price: number;
+  commission?: number;
 }
 
 export interface Extra {

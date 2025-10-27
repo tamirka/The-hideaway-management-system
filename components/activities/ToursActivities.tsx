@@ -49,7 +49,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
                     <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
                 </div>
                 <div>
-                    <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (THB)</label>
+                    <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (per person)</label>
                     <input type="number" id="commission" value={formData.commission} onChange={handleChange} placeholder="e.g. 100" className="mt-1 block w-full input-field" />
                 </div>
             </div>
@@ -60,11 +60,6 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose, initialDat
             </div>
         </form>
     );
-};
-
-const initialExtrasState = {
-    paddleboardType: 'none',
-    paddleboardHours: 1,
 };
 
 const initialPrivateTourState = {
@@ -123,30 +118,16 @@ const CommonFormFields: React.FC<{
     </div>
 );
 
-const ExtrasFormFields: React.FC<{ TOUR_EXTRAS: any, selectedExtras: any, onExtrasChange: (extras: any) => void }> = ({ TOUR_EXTRAS, selectedExtras, onExtrasChange }) => (
+const ExtrasFormFields: React.FC<{ extras: Extra[], selectedExtras: Record<string, boolean>, onExtrasChange: (extras: Record<string, boolean>) => void }> = ({ extras, selectedExtras, onExtrasChange }) => (
       <div>
           <h4 className="text-md font-semibold text-slate-800 border-b pb-2 mb-3">Add Extras</h4>
           <div className="space-y-3">
-              {TOUR_EXTRAS.simple.map((extra: Extra) => (
+              {extras.map((extra: Extra) => (
                   <div key={extra.id} className="flex items-center justify-between">
                       <label htmlFor={extra.id} className="text-sm text-slate-700">{extra.name} (+{extra.price} THB)</label>
                       <input id={extra.id} type="checkbox" checked={!!selectedExtras[extra.id]} onChange={(e) => onExtrasChange({ ...selectedExtras, [extra.id]: e.target.checked })} className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                   </div>
               ))}
-              <div className="border-t pt-3">
-                  <p className="text-sm font-medium text-slate-700 mb-2">Paddle Board</p>
-                  <select value={selectedExtras.paddleboardType} onChange={e => onExtrasChange({...selectedExtras, paddleboardType: e.target.value})} className="w-full input-field text-sm">
-                      <option value="none">None</option>
-                      <option value="hour">{TOUR_EXTRAS.special.paddleboard.hour.name}</option>
-                      <option value="day">{TOUR_EXTRAS.special.paddleboard.day.name}</option>
-                  </select>
-                  {selectedExtras.paddleboardType === 'hour' && (
-                      <div className="mt-2">
-                          <label htmlFor="paddleHours" className="text-xs text-slate-600">Hours:</label>
-                          <input type="number" id="paddleHours" min="1" value={selectedExtras.paddleboardHours} onChange={e => onExtrasChange({...selectedExtras, paddleboardHours: e.target.value})} className="w-full input-field text-sm mt-1" />
-                      </div>
-                  )}
-              </div>
           </div>
       </div>
 );
@@ -235,7 +216,7 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
     // Common form states
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
     const [discount, setDiscount] = useState<string>('');
-    const [selectedExtras, setSelectedExtras] = useState(initialExtrasState);
+    const [selectedExtras, setSelectedExtras] = useState<Record<string, boolean>>({});
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
     const [privateTourDetails, setPrivateTourDetails] = useState(initialPrivateTourState);
     const [fuelCost, setFuelCost] = useState('');
@@ -251,28 +232,23 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
 
     const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
     
-    const TOUR_EXTRAS = useMemo(() => {
-        const simple = extras.filter(e => !e.id.startsWith('paddle'));
-        const paddle_hour = extras.find(e => e.id === 'paddle_hour');
-        const paddle_day = extras.find(e => e.id === 'paddle_day');
-        return { simple, special: { paddleboard: { hour: paddle_hour || { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 0 }, day: paddle_day || { id: 'paddle_day', name: 'Paddle board (per day)', price: 0 } } } };
-    }, [extras]);
+    const bookableExtras = useMemo(() => extras.filter(e => !e.id.startsWith('paddle_')), [extras]);
     
-    const dynamicInitialExtrasState = useMemo(() => ({ ...extras.reduce((acc, extra) => ({ ...acc, [extra.id]: false }), {} as Record<string, boolean>), ...initialExtrasState }), [extras]);
+    const dynamicInitialExtrasState = useMemo(() => (
+        bookableExtras.reduce((acc, extra) => ({ ...acc, [extra.id]: false }), {} as Record<string, boolean>)
+    ), [bookableExtras]);
+
     useEffect(() => { setSelectedExtras(dynamicInitialExtrasState); }, [dynamicInitialExtrasState]);
     
-    const calculateExtras = (currentExtras: Record<string, string | number | boolean>): { list: Omit<Extra, 'id'>[], total: number } => {
+    const calculateExtras = (currentExtras: Record<string, boolean>): { list: Omit<Extra, 'id'>[], total: number } => {
         const list: Omit<Extra, 'id'>[] = [];
         let total = 0;
-        TOUR_EXTRAS.simple.forEach(extra => {
-            if (currentExtras[extra.id]) { list.push({ name: extra.name, price: extra.price }); total += extra.price; }
+        bookableExtras.forEach(extra => {
+            if (currentExtras[extra.id]) {
+                list.push({ name: extra.name, price: extra.price });
+                total += extra.price;
+            }
         });
-        if (currentExtras.paddleboardType === 'hour') {
-            const hours = Math.max(1, Number(currentExtras.paddleboardHours) || 1); const price = TOUR_EXTRAS.special.paddleboard.hour.price * hours;
-            list.push({ name: `${TOUR_EXTRAS.special.paddleboard.hour.name} x${hours}`, price }); total += price;
-        } else if (currentExtras.paddleboardType === 'day') {
-            list.push({ name: TOUR_EXTRAS.special.paddleboard.day.name, price: TOUR_EXTRAS.special.paddleboard.day.price }); total += TOUR_EXTRAS.special.paddleboard.day.price;
-        }
         return { list, total };
     };
     
@@ -355,17 +331,20 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} discount={discount} onDiscountChange={setDiscount} fuelCost={fuelCost} onFuelCostChange={setFuelCost} captainCost={captainCost} onCaptainCostChange={setCaptainCost} includeDiscount includeFuelAndCaptain includePeopleCount />
                     {currentUserRole === Role.Admin && (
                         <div>
-                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
                             <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
                         </div>
                     )}
-                    <ExtrasFormFields TOUR_EXTRAS={TOUR_EXTRAS} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
+                    <ExtrasFormFields extras={bookableExtras} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                     {(() => {
-                        const numPeople = Number(numberOfPeople) || 1; const baseTotal = (selectedActivity?.price || 0) * numPeople; const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
-                        const empCommission = Number(employeeCommission) || 0;
-                        const hostelNet = finalTotal - empCommission - (Number(fuelCost) || 0) - (Number(captainCost) || 0);
-                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedActivity?.name} ({numPeople} x {currencyFormat(selectedActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && empCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission</span><span>-{currencyFormat(empCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
+                        const numPeople = Number(numberOfPeople) || 1; 
+                        const baseTotal = (selectedActivity?.price || 0) * numPeople; 
+                        const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); 
+                        const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
+                        const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
+                        const hostelNet = finalTotal - totalEmpCommission - (Number(fuelCost) || 0) - (Number(captainCost) || 0);
+                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedActivity?.name} ({numPeople} x {currencyFormat(selectedActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && totalEmpCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span><span>-{currencyFormat(totalEmpCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
                     })()}
                     <div className="flex justify-end pt-4"><button onClick={handleBookInternalActivity} className="px-4 py-2 bg-blue-600 text-white rounded-md">Confirm Booking</button></div>
                 </div>
@@ -377,17 +356,20 @@ const ToursActivities: React.FC<ToursActivitiesProps> = ({ activities, staff, ex
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} discount={discount} onDiscountChange={setDiscount} includeDiscount includePeopleCount />
                     {currentUserRole === Role.Admin && (
                         <div>
-                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per person)</label>
                             <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
                         </div>
                     )}
-                    <ExtrasFormFields TOUR_EXTRAS={TOUR_EXTRAS} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
+                    <ExtrasFormFields extras={bookableExtras} selectedExtras={selectedExtras} onExtrasChange={setSelectedExtras} />
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                      {(() => {
-                        const numPeople = Number(numberOfPeople) || 1; const baseTotal = (selectedExternalActivity?.price || 0) * numPeople; const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
-                        const empCommission = Number(employeeCommission) || 0;
-                        const hostelNet = finalTotal - empCommission;
-                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedExternalActivity?.name} ({numPeople} x {currencyFormat(selectedExternalActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && empCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission</span><span>-{currencyFormat(empCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
+                        const numPeople = Number(numberOfPeople) || 1; 
+                        const baseTotal = (selectedExternalActivity?.price || 0) * numPeople; 
+                        const { list: extrasList, total: extrasTotal } = calculateExtras(selectedExtras); 
+                        const finalTotal: number = baseTotal + extrasTotal - (Number(discount) || 0);
+                        const totalEmpCommission = (Number(employeeCommission) || 0) * numPeople;
+                        const hostelNet = finalTotal - totalEmpCommission;
+                        return (<div className="mt-6 p-4 bg-slate-50 rounded-lg"><h4 className="text-lg font-semibold mb-2">Booking Summary</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>{selectedExternalActivity?.name} ({numPeople} x {currencyFormat(selectedExternalActivity?.price || 0)})</span><span>{currencyFormat(baseTotal)}</span></div>{extrasList.length > 0 && (<div className="flex justify-between border-t mt-1 pt-1"><span>Extras Total</span><span>{currencyFormat(extrasTotal)}</span></div>)}{(Number(discount) || 0) > 0 && (<div className="flex justify-between text-red-600"><span>Discount</span><span>-{currencyFormat(Number(discount) || 0)}</span></div>)}<div className="flex justify-between font-bold text-base pt-2 border-t mt-2"><span>Total</span><span>{currencyFormat(finalTotal)}</span></div>{currentUserRole === Role.Admin && totalEmpCommission > 0 && <div className="flex justify-between text-orange-600"><span>Employee Commission ({numPeople} x {currencyFormat(Number(employeeCommission) || 0)})</span><span>-{currencyFormat(totalEmpCommission)}</span></div>}{currentUserRole === Role.Admin && <div className="flex justify-between font-semibold text-green-600 text-base"><span>Hostel Net Revenue</span><span>{currencyFormat(hostelNet)}</span></div>}</div></div>);
                     })()}
                     <div className="flex justify-end pt-4"><button onClick={handleBookExternal} className="px-4 py-2 bg-blue-600 text-white rounded-md">Confirm Booking</button></div>
                 </div>
