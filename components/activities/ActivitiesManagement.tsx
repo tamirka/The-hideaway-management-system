@@ -52,12 +52,12 @@ interface ActivitiesManagementProps {
   accommodationBookings: AccommodationBooking[];
   rooms: Room[];
   paymentTypes: PaymentType[];
-  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
+  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => void;
   onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
-  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, totalCommission: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
-  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number) => void;
-  onBookStandaloneExtra: (extra: Extra, staffId: string, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
-  onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
+  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
+  onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
+  onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
+  onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
   onUpdateBooking: (updatedBooking: Booking) => void;
   onAddExternalSale: (newSale: Omit<ExternalSale, 'id'>) => void;
   onUpdateExternalSale: (updatedSale: ExternalSale) => void;
@@ -122,6 +122,9 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         onBookActivity={props.onBookActivity}
                         onBookExternalActivity={props.onBookExternalActivity}
                         onBookPrivateTour={props.onBookPrivateTour}
+                        onAddActivity={props.onAddActivity}
+                        onUpdateActivity={props.onUpdateActivity}
+                        onDeleteActivity={props.onDeleteActivity}
                         currentUserRole={props.currentUserRole}
                      />;
           case 'boats':
@@ -135,6 +138,9 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         onAddSpeedBoatTrip={props.onAddSpeedBoatTrip}
                         onUpdateSpeedBoatTrip={props.onUpdateSpeedBoatTrip}
                         onDeleteSpeedBoatTrip={props.onDeleteSpeedBoatTrip}
+                        onAddTaxiBoatOption={props.onAddTaxiBoatOption}
+                        onUpdateTaxiBoatOption={props.onUpdateTaxiBoatOption}
+                        onDeleteTaxiBoatOption={props.onDeleteTaxiBoatOption}
                         currentUserRole={props.currentUserRole}
                      />;
           case 'extras':
@@ -143,6 +149,10 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         staff={props.staff}
                         paymentTypes={props.paymentTypes}
                         onBookStandaloneExtra={props.onBookStandaloneExtra}
+                        onAddExtra={props.onAddExtra}
+                        onUpdateExtra={props.onUpdateExtra}
+                        onDeleteExtra={props.onDeleteExtra}
+                        currentUserRole={props.currentUserRole}
                      />;
           case 'report':
               return props.currentUserRole === Role.Admin ? 

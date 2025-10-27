@@ -17,43 +17,6 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
     </div>
 );
 
-interface EditBookingFormProps {
-    booking: Booking;
-    onSave: (updatedBooking: Booking) => void;
-    onClose: () => void;
-}
-const EditBookingForm: React.FC<EditBookingFormProps> = ({ booking, onSave, onClose }) => {
-    const [employeeCommission, setEmployeeCommission] = useState(booking.employeeCommission.toString());
-    const [hostelCommission, setHostelCommission] = useState(booking.hostelCommission.toString());
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({
-            ...booking,
-            employeeCommission: Number(employeeCommission) || 0,
-            hostelCommission: Number(hostelCommission) || 0,
-        });
-        onClose();
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
-                <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
-            </div>
-            <div>
-                <label htmlFor="hostelCommission" className="block text-sm font-medium text-slate-700">Hostel Commission (THB)</label>
-                <input type="number" id="hostelCommission" value={hostelCommission} onChange={(e) => setHostelCommission(e.target.value)} className="mt-1 block w-full input-field" />
-            </div>
-             <div className="flex justify-end space-x-2 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
-            </div>
-        </form>
-    );
-};
-
 interface ExternalSaleFormProps {
     onSave: (sale: Omit<ExternalSale, 'id'> | ExternalSale) => void;
     onClose: () => void;
@@ -138,6 +101,57 @@ const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClo
     );
 };
 
+interface EditBookingFormProps {
+    booking: Booking;
+    onSave: (booking: Booking) => void;
+    onClose: () => void;
+}
+const EditBookingForm: React.FC<EditBookingFormProps> = ({ booking, onSave, onClose }) => {
+    const [employeeCommission, setEmployeeCommission] = useState(booking.employeeCommission?.toString() || '');
+    const [hostelCommission, setHostelCommission] = useState(booking.hostelCommission?.toString() || '');
+
+    const handleSave = () => {
+        const updatedBooking = {
+            ...booking,
+            employeeCommission: Number(employeeCommission) || undefined,
+            hostelCommission: Number(hostelCommission) || undefined,
+        };
+        onSave(updatedBooking);
+        onClose();
+    };
+
+    const canEditEmployeeCommission = ['activity', 'external_activity', 'private_tour'].includes(booking.itemType);
+    const canEditHostelCommission = booking.itemType === 'private_tour';
+
+    return (
+        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
+            <div className="p-4 bg-slate-50 rounded-lg">
+                <p><span className="font-semibold">Item:</span> {booking.itemName}</p>
+                <p><span className="font-semibold">Date:</span> {booking.bookingDate}</p>
+            </div>
+            {canEditEmployeeCommission && (
+                <div>
+                    <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
+                    <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                </div>
+            )}
+            {canEditHostelCommission && (
+                <div>
+                    <label htmlFor="hostelCommission" className="block text-sm font-medium text-slate-700">Hostel Commission (THB)</label>
+                    <input type="number" id="hostelCommission" value={hostelCommission} onChange={(e) => setHostelCommission(e.target.value)} className="mt-1 block w-full input-field" />
+                </div>
+            )}
+            {!canEditEmployeeCommission && !canEditHostelCommission && (
+                <p className="text-sm text-slate-600">This booking type does not support commissions.</p>
+            )}
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+            </div>
+        </form>
+    );
+};
+
 
 // --- Main Component ---
 interface BookingsReportProps {
@@ -167,12 +181,12 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
     const [selectedDay, setSelectedDay] = useState<string>('');
     const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
-    const [isEditBookingModalOpen, setIsEditBookingModalOpen] = useState(false);
-    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     const [isExternalSaleModalOpen, setIsExternalSaleModalOpen] = useState(false);
     const [editingExternalSale, setEditingExternalSale] = useState<ExternalSale | null>(null);
     const [isPlatformPaymentModalOpen, setIsPlatformPaymentModalOpen] = useState(false);
     const [editingPlatformPayment, setEditingPlatformPayment] = useState<PlatformPayment | null>(null);
+    const [isEditBookingModalOpen, setIsEditBookingModalOpen] = useState(false);
+    const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
     
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
     const roomMap = useMemo(() => new Map(rooms.map(r => [r.id, r.name])), [rooms]);
@@ -180,19 +194,19 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     // Handlers
     const handleCloseModals = () => {
         setViewingReceipt(null);
-        setIsEditBookingModalOpen(false);
-        setEditingBooking(null);
         setIsExternalSaleModalOpen(false);
         setEditingExternalSale(null);
         setIsPlatformPaymentModalOpen(false);
         setEditingPlatformPayment(null);
+        setIsEditBookingModalOpen(false);
+        setEditingBooking(null);
     };
-    const handleOpenEditBookingModal = (booking: Booking) => { setEditingBooking(booking); setIsEditBookingModalOpen(true); };
-    const handleSaveBookingUpdate = (updatedBooking: Booking) => { onUpdateBooking(updatedBooking); handleCloseModals(); };
     const handleOpenExternalSaleModal = (sale?: ExternalSale) => { setEditingExternalSale(sale || null); setIsExternalSaleModalOpen(true); };
     const handleSaveExternalSale = (saleData: Omit<ExternalSale, 'id'> | ExternalSale) => { if ('id' in saleData) { onUpdateExternalSale(saleData); } else { onAddExternalSale(saleData); } handleCloseModals(); };
     const handleOpenPlatformPaymentModal = (payment?: PlatformPayment) => { setEditingPlatformPayment(payment || null); setIsPlatformPaymentModalOpen(true); };
     const handleSavePlatformPayment = (paymentData: Omit<PlatformPayment, 'id'> | PlatformPayment) => { if ('id' in paymentData) { onUpdatePlatformPayment(paymentData); } else { onAddPlatformPayment(paymentData); } handleCloseModals(); };
+    const handleOpenEditBookingModal = (booking: Booking) => { setEditingBooking(booking); setIsEditBookingModalOpen(true); };
+
 
     // Memos for data processing...
     const currentFilter = useMemo(() => {
@@ -218,20 +232,28 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const filteredAccommodationBookings = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
 
     const reportData = useMemo(() => {
-        const totalHostelBookingCommission = filteredBookings.reduce((sum, b) => sum + b.hostelCommission, 0);
+        const totalActivityBookingRevenue = filteredBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
+        
+        const totalExtrasRevenue = filteredBookings.reduce((sum, b) => {
+            if (b.itemType === 'extra') {
+                return sum + b.customerPrice - (b.discount || 0); // Standalone extra
+            }
+            return sum + (b.extrasTotal || 0); // Extras attached to other bookings
+        }, 0);
+
         const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
         const totalWalkInRevenue = filteredWalkInGuests.reduce((sum, g) => sum + g.amountPaid, 0);
         const totalPlatformBookingRevenue = filteredAccommodationBookings.reduce((sum, b) => sum + b.amountPaid, 0);
         const totalAccommodationRevenue = totalWalkInRevenue + totalPlatformBookingRevenue;
-        const totalRevenue = totalHostelBookingCommission + totalExternalSales + totalAccommodationRevenue;
+        const totalRevenue = totalActivityBookingRevenue + totalExternalSales + totalAccommodationRevenue;
         
         const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
-        const totalOperationalCosts = filteredBookings.reduce((sum, b) => sum + (b.fuelCost || 0) + (b.captainCost || 0), 0);
-        const totalEmployeeCommission = filteredBookings.reduce((sum, b) => sum + b.employeeCommission, 0);
+        const totalItemCosts = filteredBookings.reduce((sum, b) => sum + (b.itemCost || 0), 0);
+        const totalEmployeeCommissions = filteredBookings.reduce((sum, b) => sum + (b.employeeCommission || 0), 0);
         const totalSalaries = staff.reduce((sum, s) => sum + s.salary, 0);
-        const totalCalculatedSalaries = reportGranularity === 'yearly' ? totalSalaries : totalSalaries / 12;
+        const totalCalculatedSalaries = reportGranularity === 'yearly' ? totalSalaries * 12 : totalSalaries;
         const totalSalaryAdvances = filteredSalaryAdvances.reduce((sum, a) => sum + a.amount, 0);
-        const totalExpenses = totalUtilitiesCost + totalOperationalCosts + totalEmployeeCommission + totalCalculatedSalaries + totalSalaryAdvances;
+        const totalExpenses = totalUtilitiesCost + totalItemCosts + totalCalculatedSalaries + totalSalaryAdvances + totalEmployeeCommissions;
 
         const netProfit = totalRevenue - totalExpenses;
 
@@ -241,19 +263,20 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 staffId: s.id, staffName: s.name,
                 bookingsCount: staffBookings.length,
                 totalRevenue: staffBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0),
-                totalCommission: staffBookings.reduce((sum, b) => sum + b.employeeCommission, 0),
+                totalCommission: staffBookings.reduce((sum, b) => sum + (b.employeeCommission || 0), 0),
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
+        // Fix: Correctly typed the reduce accumulator with a type assertion to ensure `Object.entries` infers the correct value type.
         const companyDebts = filteredBookings
             .filter(b => b.itemType === 'speedboat')
-            .reduce<Record<string, number>>((acc, booking) => {
+            .reduce((acc, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
             }, {} as Record<string, number>);
     
-        return { totalRevenue, totalAccommodationRevenue, totalHostelBookingCommission, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalEmployeeCommission, totalUtilitiesCost, totalOperationalCosts, totalSalaryAdvances, netProfit, staffPerformance, companyDebts };
+        return { totalRevenue, totalAccommodationRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
     
     const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -287,7 +310,11 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                     <div className="bg-white p-4"><h4 className="font-semibold text-green-600 mb-2">Revenue Streams</h4>
                         <ul className="space-y-1 text-sm">
                             <li className="flex justify-between"><span>Accommodation Revenue (Paid):</span> <span className="font-medium">{currencyFormat(reportData.totalAccommodationRevenue)}</span></li>
-                            <li className="flex justify-between"><span>Hostel Booking Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalHostelBookingCommission)}</span></li>
+                            <li className="flex justify-between"><span>Activity Booking Revenue:</span> <span className="font-medium">{currencyFormat(reportData.totalActivityBookingRevenue)}</span></li>
+                             <li className="flex justify-between pl-4 text-slate-500">
+                                <span>↳ from Extras:</span>
+                                <span className="font-medium">{currencyFormat(reportData.totalExtrasRevenue)}</span>
+                            </li>
                             <li className="flex justify-between"><span>External POS Sales:</span> <span className="font-medium">{currencyFormat(reportData.totalExternalSales)}</span></li>
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Revenue:</span> <span>{currencyFormat(reportData.totalRevenue)}</span></li>
                         </ul>
@@ -295,10 +322,10 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                     <div className="bg-white p-4"><h4 className="font-semibold text-red-600 mb-2">Expense Streams</h4>
                         <ul className="space-y-1 text-sm">
                             <li className="flex justify-between"><span>Staff Salaries ({reportGranularity === 'yearly' ? 'Annual' : 'Monthly'} Est.):</span> <span className="font-medium">{currencyFormat(reportData.totalMonthlySalaries)}</span></li>
-                            <li className="flex justify-between"><span>Employee Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommission)}</span></li>
                             <li className="flex justify-between"><span>Utility Bills:</span> <span className="font-medium">{currencyFormat(reportData.totalUtilitiesCost)}</span></li>
-                            <li className="flex justify-between"><span>Operational Costs (Fuel/Captain):</span> <span className="font-medium">{currencyFormat(reportData.totalOperationalCosts)}</span></li>
+                            <li className="flex justify-between"><span>Activity Item Costs:</span> <span className="font-medium">{currencyFormat(reportData.totalItemCosts)}</span></li>
                             <li className="flex justify-between"><span>Salary Advances:</span> <span className="font-medium">{currencyFormat(reportData.totalSalaryAdvances)}</span></li>
+                            <li className="flex justify-between"><span>Employee Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommissions)}</span></li>
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
                         </ul>
                     </div>
@@ -341,24 +368,21 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             <div className="bg-white rounded-lg shadow-md overflow-x-auto"><h3 className="text-lg font-semibold p-4 border-b">Staff Performance - {reportPeriodTitle}</h3>
                 <table className="w-full text-sm">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Staff Name</th><th className="px-6 py-3">Bookings</th><th className="px-6 py-3">Revenue Generated</th><th className="px-6 py-3">Commission Earned</th></tr></thead>
-                    <tbody>{reportData.staffPerformance.map(p => <tr key={p.staffId} className="border-b"><td className="px-6 py-4 font-medium">{p.staffName}</td><td className="px-6 py-4">{p.bookingsCount}</td><td className="px-6 py-4">{currencyFormat(p.totalRevenue)}</td><td className="px-6 py-4 font-bold text-green-600">{currencyFormat(p.totalCommission)}</td></tr>)}</tbody>
+                    <tbody>{reportData.staffPerformance.map(p => <tr key={p.staffId} className="border-b"><td className="px-6 py-4 font-medium">{p.staffName}</td><td className="px-6 py-4">{p.bookingsCount}</td><td className="px-6 py-4">{currencyFormat(p.totalRevenue)}</td><td className="px-6 py-4 font-semibold text-green-600">{currencyFormat(p.totalCommission)}</td></tr>)}</tbody>
                 </table>
             </div>
 
             <div className="bg-white rounded-lg shadow-md overflow-x-auto"><h3 className="text-lg font-semibold p-4 border-b">All Bookings - {reportPeriodTitle}</h3>
                 <table className="w-full text-sm">
-                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Item</th><th className="px-6 py-3">Staff</th><th className="px-6 py-3">Price</th><th className="px-6 py-3">Receipt</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
+                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Item</th><th className="px-6 py-3">Staff</th><th className="px-6 py-3">Price</th><th className="px-6 py-3">Hostel C.</th><th className="px-6 py-3">Employee C.</th><th className="px-6 py-3">Receipt</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
-                        {filteredBookings.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><button onClick={() => handleOpenEditBookingModal(b)}><EditIcon/></button></td></tr>)}
-                        {filteredBookings.length === 0 && (<tr><td colSpan={7} className="text-center p-4">No bookings.</td></tr>)}
+                        {filteredBookings.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.hostelCommission ? currencyFormat(b.hostelCommission) : 'N/A'}</td><td className="px-6 py-4">{b.employeeCommission ? currencyFormat(b.employeeCommission) : 'N/A'}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><button onClick={() => handleOpenEditBookingModal(b)}><EditIcon/></button></td></tr>)}
+                        {filteredBookings.length === 0 && (<tr><td colSpan={9} className="text-center p-4">No bookings.</td></tr>)}
                      </tbody>
                 </table>
             </div>
 
             {/* Modals */}
-            <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title={`Edit Booking: ${editingBooking?.id?.slice(-6)}`}>
-                {editingBooking && <EditBookingForm booking={editingBooking} onSave={handleSaveBookingUpdate} onClose={handleCloseModals}/>}
-            </Modal>
             <Modal isOpen={isExternalSaleModalOpen} onClose={handleCloseModals} title={editingExternalSale ? 'Edit POS Sale' : 'Add POS Sale'}>
                 <ExternalSaleForm onSave={handleSaveExternalSale} onClose={handleCloseModals} initialData={editingExternalSale} />
             </Modal>
@@ -367,6 +391,9 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             </Modal>
             <Modal isOpen={!!viewingReceipt} onClose={() => setViewingReceipt(null)} title="View Receipt">
                 {viewingReceipt && <img src={viewingReceipt} alt="Receipt" className="w-full h-auto rounded-md" />}
+            </Modal>
+            <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title="Edit Booking Commissions">
+                {editingBooking && <EditBookingForm booking={editingBooking} onSave={onUpdateBooking} onClose={handleCloseModals} />}
             </Modal>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </div>

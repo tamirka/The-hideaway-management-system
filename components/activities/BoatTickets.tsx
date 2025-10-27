@@ -67,6 +67,59 @@ const SpeedBoatTripForm: React.FC<SpeedBoatTripFormProps> = ({ onSave, onClose, 
     )
 }
 
+// Form for adding/editing TaxiBoatOption
+interface TaxiBoatOptionFormProps {
+    onSave: (option: Omit<TaxiBoatOption, 'id'> | TaxiBoatOption) => void;
+    onClose: () => void;
+    initialData?: TaxiBoatOption | null;
+}
+
+const TaxiBoatOptionForm: React.FC<TaxiBoatOptionFormProps> = ({ onSave, onClose, initialData }) => {
+    const [formData, setFormData] = useState({
+        name: initialData?.name || ('One Way' as 'One Way' | 'Round Trip'),
+        price: initialData?.price.toString() || '',
+    });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const optionData = {
+            name: formData.name as 'One Way' | 'Round Trip',
+            price: Number(formData.price) || 0,
+        };
+        if (initialData) {
+            onSave({ ...initialData, ...optionData });
+        } else {
+            onSave(optionData);
+        }
+        onClose();
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-700">Trip Type</label>
+                <select id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field">
+                    <option value="One Way">One Way</option>
+                    <option value="Round Trip">Round Trip</option>
+                </select>
+            </div>
+            <div>
+                <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
+                <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Save Changes' : 'Add Option'}</button>
+            </div>
+        </form>
+    );
+};
+
 const CommonFormFields: React.FC<{ staff: Staff[]; selectedStaffId: string; onStaffChange: (id: string) => void; numberOfPeople: string; onPeopleChange: (num: string) => void; includePeopleCount?: boolean; }> = ({ staff, selectedStaffId, onStaffChange, numberOfPeople, onPeopleChange, includePeopleCount = false }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -126,14 +179,17 @@ interface BoatTicketsProps {
     staff: Staff[];
     paymentTypes: PaymentType[];
     onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
-    onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, totalCommission: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
+    onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string) => void;
     onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
     onUpdateSpeedBoatTrip: (updatedTrip: SpeedBoatTrip) => void;
     onDeleteSpeedBoatTrip: (tripId: string) => void;
+    onAddTaxiBoatOption: (newOption: Omit<TaxiBoatOption, 'id'>) => void;
+    onUpdateTaxiBoatOption: (updatedOption: TaxiBoatOption) => void;
+    onDeleteTaxiBoatOption: (optionId: string) => void;
     currentUserRole: Role;
 }
 
-const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptions, staff, paymentTypes, onBookSpeedBoat, onBookTaxiBoat, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, currentUserRole }) => {
+const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptions, staff, paymentTypes, onBookSpeedBoat, onBookTaxiBoat, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onAddTaxiBoatOption, onUpdateTaxiBoatOption, onDeleteTaxiBoatOption, currentUserRole }) => {
     // Modal states
     const [isSpeedBoatModalOpen, setIsSpeedBoatModalOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<SpeedBoatTrip | null>(null);
@@ -144,6 +200,10 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     const [isManageTripsModalOpen, setIsManageTripsModalOpen] = useState(false);
     const [editingSpeedBoatTrip, setEditingSpeedBoatTrip] = useState<SpeedBoatTrip | null>(null);
     const [showTripForm, setShowTripForm] = useState(false);
+    const [isManageTaxiModalOpen, setIsManageTaxiModalOpen] = useState(false);
+    const [editingTaxiOption, setEditingTaxiOption] = useState<TaxiBoatOption | null>(null);
+    const [showTaxiForm, setShowTaxiForm] = useState(false);
+
 
     const initialPaymentState = useMemo(() => ({
         method: paymentTypes[0]?.name || '',
@@ -154,9 +214,7 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
     const [numberOfPeople, setNumberOfPeople] = useState('1');
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
-    // Fix: Explicitly type the state to ensure `receiptImage` is optional.
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
-    const [commission, setCommission] = useState('');
 
     useEffect(() => {
         setPaymentDetails(initialPaymentState);
@@ -169,22 +227,25 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
         setNumberOfPeople('1');
         setBookingDate(new Date().toISOString().split('T')[0]);
         setPaymentDetails(initialPaymentState);
-        setCommission('');
     };
     
     const handleCloseModals = () => {
         setIsSpeedBoatModalOpen(false);
         setIsTaxiModalOpen(false);
         setIsManageTripsModalOpen(false);
+        setIsManageTaxiModalOpen(false);
         setSelectedTrip(null);
         setSelectedRoute(null);
         setSelectedTaxiOption(null);
         setEditingSpeedBoatTrip(null);
         setShowTripForm(false);
+        setEditingTaxiOption(null);
+        setShowTaxiForm(false);
     };
     
+    // Fix: Correctly typed the reduce accumulator with a type assertion to ensure `Object.entries` infers the correct value type.
     const groupedSpeedBoatTrips = useMemo(() => {
-        return speedBoatTrips.reduce((acc: Record<string, SpeedBoatTrip[]>, trip) => {
+        return speedBoatTrips.reduce((acc, trip) => {
             const { route } = trip;
             if (!acc[route]) {
                 acc[route] = [];
@@ -216,7 +277,7 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
 
     const handleBookTaxi = () => {
         if (!selectedTaxiOption || !selectedStaffId) return alert('Please select a staff member.');
-        onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), Number(commission) || 0, paymentDetails.method, bookingDate, paymentDetails.receiptImage);
+        onBookTaxiBoat(selectedTaxiOption.id, selectedStaffId, Number(numberOfPeople), paymentDetails.method, bookingDate, paymentDetails.receiptImage);
         handleCloseModals();
     };
 
@@ -233,6 +294,21 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
         }
         setEditingSpeedBoatTrip(null);
         setShowTripForm(false);
+    };
+
+    const handleEditTaxiOption = (option: TaxiBoatOption) => {
+        setEditingTaxiOption(option);
+        setShowTaxiForm(true);
+    };
+
+    const handleSaveTaxiOption = (optionData: Omit<TaxiBoatOption, 'id'> | TaxiBoatOption) => {
+        if ('id' in optionData) {
+            onUpdateTaxiBoatOption(optionData);
+        } else {
+            onAddTaxiBoatOption(optionData);
+        }
+        setEditingTaxiOption(null);
+        setShowTaxiForm(false);
     };
 
 
@@ -259,7 +335,12 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                     </div>
                 </div>
                 <div className="bg-white rounded-lg shadow-md p-4">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-3">Taxi Boat</h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold text-slate-800">Taxi Boat</h3>
+                        {currentUserRole === Role.Admin && (
+                            <button onClick={() => setIsManageTaxiModalOpen(true)} className="px-3 py-1.5 text-sm font-semibold text-white bg-slate-600 rounded-md hover:bg-slate-700">Manage Options</button>
+                        )}
+                    </div>
                      <div className="space-y-2">
                         {taxiBoatOptions.map(opt => (
                             <div key={opt.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50">
@@ -333,12 +414,6 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                         <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
                     </div>
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} numberOfPeople={numberOfPeople} onPeopleChange={setNumberOfPeople} includePeopleCount />
-                     {currentUserRole === Role.Admin && (
-                        <div>
-                            <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Total Commission (THB)</label>
-                            <input type="number" id="commission" value={commission} onChange={(e) => setCommission(e.target.value)} required className="mt-1 block w-full input-field" />
-                        </div>
-                    )}
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                     <div className="flex justify-end pt-4">
                         <button onClick={handleBookTaxi} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Confirm Booking</button>
@@ -348,8 +423,9 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
              <Modal isOpen={isManageTripsModalOpen} onClose={handleCloseModals} title="Manage Speed Boat Trips">
                 <div className="space-y-4">
                     <div className="flex justify-end">
-                        <button onClick={() => setShowTripForm(prev => !prev)} className="text-sm font-semibold text-blue-600 hover:text-blue-800">
-                            {showTripForm ? 'Close Form' : 'Add New Trip'}
+                        <button onClick={() => { setEditingSpeedBoatTrip(null); setShowTripForm(prev => !prev); }} className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center">
+                           <PlusIcon className="w-4 h-4 mr-1"/>
+                           {showTripForm && !editingSpeedBoatTrip ? 'Close Form' : 'Add New Trip'}
                         </button>
                     </div>
 
@@ -380,6 +456,42 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                     </div>
                 </div>
             </Modal>
+
+            <Modal isOpen={isManageTaxiModalOpen} onClose={handleCloseModals} title="Manage Taxi Boat Options">
+                <div className="space-y-4">
+                    <div className="flex justify-end">
+                         <button onClick={() => { setEditingTaxiOption(null); setShowTaxiForm(prev => !prev); }} className="text-sm font-semibold text-blue-600 hover:text-blue-800 flex items-center">
+                           <PlusIcon className="w-4 h-4 mr-1"/>
+                           {showTaxiForm && !editingTaxiOption ? 'Close Form' : 'Add New Option'}
+                        </button>
+                    </div>
+                     {showTaxiForm && (
+                         <div className="p-4 bg-slate-50 rounded-lg border">
+                            <h4 className="text-md font-semibold text-slate-800 mb-3">{editingTaxiOption ? 'Edit Option' : 'Add New Option'}</h4>
+                            <TaxiBoatOptionForm 
+                                onSave={handleSaveTaxiOption}
+                                onClose={() => { setShowTaxiForm(false); setEditingTaxiOption(null); }}
+                                initialData={editingTaxiOption}
+                            />
+                        </div>
+                    )}
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                        {taxiBoatOptions.map(option => (
+                            <div key={option.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm border">
+                                <div>
+                                    <p className="font-medium text-slate-800">{option.name}</p>
+                                    <p className="text-xs text-slate-500">Price: {option.price} THB</p>
+                                </div>
+                                <div className="flex space-x-3">
+                                    <button onClick={() => handleEditTaxiOption(option)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                                    <button onClick={() => onDeleteTaxiBoatOption(option.id)} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </Modal>
+
              <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </>
     );

@@ -116,6 +116,7 @@ export interface Activity {
   description: string;
   price: number;
   imageUrl: string;
+  commission?: number;
 }
 
 export interface SpeedBoatTrip {
@@ -176,8 +177,6 @@ export interface Booking {
   bookingDate: string; // YYYY-MM-DD
   customerPrice: number;
   numberOfPeople: number;
-  employeeCommission: number;
-  hostelCommission: number;
   discount?: number;
   extras?: Omit<Extra, 'id'>[];
   extrasTotal?: number;
@@ -186,6 +185,8 @@ export interface Booking {
   fuelCost?: number;
   captainCost?: number;
   itemCost?: number; // Total cost for the hostel (e.g., what to pay the boat company)
+  employeeCommission?: number;
+  hostelCommission?: number;
 }
 
 export interface ExternalSale {
