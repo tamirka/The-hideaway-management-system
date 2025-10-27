@@ -266,8 +266,8 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
         setShowTaxiForm(false);
     };
     
-    // Fix: Correctly type the initial value for the reduce function to ensure type safety.
     const groupedSpeedBoatTrips = useMemo(() => {
+        // Fix: Correctly type the initial value for the reduce function to ensure type safety.
         return speedBoatTrips.reduce((acc, trip) => {
             const { route } = trip;
             if (!acc[route]) {

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Room, Bed } from '../types';
 import { BedStatus, EntityCondition, Role } from '../types';
 import Modal from './Modal';
 import Badge from './Badge';
-import { PlusIcon, EditIcon, TrashIcon, BedIcon } from '../constants';
+import { PlusIcon, EditIcon, TrashIcon, BedIcon, ClipboardDocumentCheckIcon, PrinterIcon } from '../constants';
 
 interface RoomFormProps {
   onSubmit: (room: Omit<Room, 'id'> | Room) => void;
@@ -90,6 +90,76 @@ const RoomForm: React.FC<RoomFormProps> = ({ onSubmit, onClose, initialData }) =
   );
 };
 
+interface BedToClean {
+    roomId: string;
+    roomName: string;
+    bedId: string;
+    bedNumber: number;
+}
+
+interface CleaningChecklistProps {
+  beds: BedToClean[];
+  onMarkAsClean: (roomId: string, bedId: string) => void;
+  onPrint: () => void;
+}
+
+const CleaningChecklist: React.FC<CleaningChecklistProps> = ({ beds, onMarkAsClean, onPrint }) => {
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-3 gap-y-3">
+        <div className="flex items-center space-x-2">
+            <ClipboardDocumentCheckIcon className="w-6 h-6 text-amber-700"/>
+            <h2 className="text-xl font-bold text-amber-800">Cleaning Checklist ({beds.length})</h2>
+        </div>
+        <button onClick={onPrint} className="flex items-center justify-center sm:w-auto w-full px-3 py-1.5 bg-slate-600 text-white rounded-md text-sm hover:bg-slate-700 transition-colors">
+            <PrinterIcon className="w-4 h-4 mr-2"/> Print List for Staff
+        </button>
+      </div>
+      <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+        {beds.map(bed => (
+          <div key={bed.bedId} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm">
+            <div>
+              <span className="font-semibold text-slate-800">{bed.roomName}</span> - <span className="text-slate-600">Bed {bed.bedNumber}</span>
+            </div>
+            <button
+              onClick={() => onMarkAsClean(bed.roomId, bed.bedId)}
+              className="px-2 py-1 text-xs font-semibold text-white bg-green-500 rounded-md hover:bg-green-600"
+            >
+              Cleaned
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const PrintableCleaningList: React.FC<{ beds: BedToClean[] }> = ({ beds }) => (
+    <div className="hidden printable-area">
+        <h1 className="text-2xl font-bold mb-4">The Hideaway: Cleaning List</h1>
+        <p className="mb-4">Generated on: {new Date().toLocaleString()}</p>
+        <table className="w-full text-base" style={{ borderCollapse: 'collapse', border: '1px solid black' }}>
+            <thead>
+                <tr>
+                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Room Name</th>
+                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Bed</th>
+                    <th className="p-2 text-left" style={{ border: '1px solid black', backgroundColor: '#f0f0f0' }}>Cleaned (✓)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {beds.map(bed => (
+                    <tr key={bed.bedId}>
+                        <td className="p-2" style={{ border: '1px solid black' }}>{bed.roomName}</td>
+                        <td className="p-2" style={{ border: '1px solid black' }}>{bed.bedNumber}</td>
+                        <td className="p-2 h-12" style={{ border: '1px solid black', width: '120px' }}></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
+);
+
+
 interface RoomManagementProps {
   rooms: Room[];
   onAddRoom: (newRoom: Omit<Room, 'id'>) => void;
@@ -145,6 +215,23 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
     });
   };
 
+  const bedsToClean = useMemo(() => {
+    const list: BedToClean[] = [];
+    rooms.forEach(room => {
+        room.beds.forEach(bed => {
+            if (bed.status === BedStatus['Needs Cleaning']) {
+                list.push({ roomId: room.id, roomName: room.name, bedId: bed.id, bedNumber: bed.number });
+            }
+        });
+    });
+    return list;
+  }, [rooms]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
@@ -156,6 +243,14 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
             </button>
         )}
       </div>
+
+      {bedsToClean.length > 0 && (
+        <CleaningChecklist
+          beds={bedsToClean}
+          onMarkAsClean={(roomId, bedId) => handleBedStatusChange(roomId, bedId, BedStatus.Ready)}
+          onPrint={handlePrint}
+        />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms.map((room) => (
@@ -224,6 +319,8 @@ const RoomManagement: React.FC<RoomManagementProps> = ({ rooms, onAddRoom, onUpd
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingRoom ? 'Edit Room' : 'Add New Room'}>
         <RoomForm onSubmit={handleSubmit} onClose={handleCloseModal} initialData={editingRoom} />
       </Modal>
+
+      <PrintableCleaningList beds={bedsToClean} />
     </div>
   );
 };
