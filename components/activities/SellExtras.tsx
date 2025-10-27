@@ -135,7 +135,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
-    const [numberOfHours, setNumberOfHours] = useState('1');
+    const [quantity, setQuantity] = useState('1');
     const [employeeCommission, setEmployeeCommission] = useState('');
 
     useEffect(() => {
@@ -146,7 +146,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
         setSelectedStaffId('');
         setPaymentDetails(initialPaymentState);
         setBookingDate(new Date().toISOString().split('T')[0]);
-        setNumberOfHours('1');
+        setQuantity('1');
         setEmployeeCommission('');
     };
 
@@ -167,8 +167,8 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
 
     const handleBookExtra = () => {
         if (!selectedExtra || !selectedStaffId) return alert('Please select a staff member.');
-        const quantity = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
-        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage, quantity, Number(employeeCommission) || undefined);
+        const finalQuantity = Number(quantity) || 1;
+        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage, finalQuantity, Number(employeeCommission) || undefined);
         handleCloseModals();
     };
 
@@ -185,6 +185,13 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
         }
         setEditingExtra(null);
         setShowExtraForm(false);
+    };
+
+    const getQuantityLabel = () => {
+        if (!selectedExtra) return 'Quantity';
+        if (selectedExtra.id === 'paddle_hour') return 'Number of Hours';
+        if (selectedExtra.id === 'paddle_day') return 'Number of Days';
+        return 'Quantity';
     };
 
 
@@ -217,20 +224,18 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                         <input type="date" id="bookingDate" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required className="mt-1 block w-full input-field" />
                     </div>
                     
-                    {selectedExtra?.id === 'paddle_hour' && (
-                        <div>
-                            <label htmlFor="numberOfHours" className="block text-sm font-medium text-slate-700">Number of Hours</label>
-                            <input 
-                                type="number" 
-                                id="numberOfHours" 
-                                value={numberOfHours} 
-                                onChange={(e) => setNumberOfHours(e.target.value)} 
-                                min="1" 
-                                required 
-                                className="mt-1 block w-full input-field" 
-                            />
-                        </div>
-                    )}
+                    <div>
+                        <label htmlFor="quantity" className="block text-sm font-medium text-slate-700">{getQuantityLabel()}</label>
+                        <input 
+                            type="number" 
+                            id="quantity" 
+                            value={quantity} 
+                            onChange={(e) => setQuantity(e.target.value)} 
+                            min="1" 
+                            required 
+                            className="mt-1 block w-full input-field" 
+                        />
+                    </div>
 
                     <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} currentUserRole={currentUserRole} />
                     
@@ -250,9 +255,9 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                     
                     {selectedExtra && (() => {
-                        const quantity = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
-                        const total = (selectedExtra.price || 0) * quantity;
-                        const totalCommission = (Number(employeeCommission) || 0) * quantity;
+                        const finalQuantity = Number(quantity) || 1;
+                        const total = (selectedExtra.price || 0) * finalQuantity;
+                        const totalCommission = (Number(employeeCommission) || 0) * finalQuantity;
                         return (
                             <div className="mt-6 p-4 bg-slate-50 rounded-lg">
                                 <h4 className="text-lg font-semibold text-slate-800 mb-2">Sale Summary</h4>

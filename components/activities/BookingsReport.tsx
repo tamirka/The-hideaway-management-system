@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra } from '../../types';
 import Modal from '../Modal';
-// Fix: Import newly added TrendingUpIcon and BuildingOfficeIcon.
 import { PlusIcon, EditIcon, TrashIcon, EyeIcon, CurrencyDollarIcon, ReceiptPercentIcon, TrendingUpIcon, BuildingOfficeIcon } from '../../constants';
 
 // --- Sub-Components & Forms ---

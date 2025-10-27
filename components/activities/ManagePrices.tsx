@@ -140,13 +140,12 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
 }
 
 // Fix: Refactor component from a function declaration to a const with an arrow function to resolve JSX typing issues with generic components.
-// Note: Changed back to a function declaration to fix JSX generic parsing issues.
-function EditablePriceItem<T extends { id: string; name: string; price: number }>({
+const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
   item,
   onSave,
   onDelete,
   currencySymbol = 'THB',
-}: EditablePriceItemProps<T>): React.ReactElement {
+}: EditablePriceItemProps<T>): React.ReactElement => {
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -358,7 +357,6 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Activity Prices</h2><button onClick={() => setModal('activity')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Activity</button></div>
-                {/* Fix: Explicitly provide generic type to EditablePriceItem to ensure correct type inference. */}
                 <div className="space-y-3">{activities.map(activity => ( <EditablePriceItem<Activity> key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -367,7 +365,6 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Taxi Boat Prices</h2><button onClick={() => setModal('taxi')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Taxi Option</button></div>
-                {/* Fix: Explicitly provide generic type to EditablePriceItem to ensure correct type inference. */}
                 <div className="space-y-3">{taxiBoatOptions.map(option => ( <EditablePriceItem<TaxiBoatOption> key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
