@@ -102,8 +102,8 @@ const MOCK_EXTRAS_DATA: Extra[] = [
     { id: 'musli', name: 'Musli', price: 50 },
     { id: 'snorkel', name: 'Snorkel', price: 50 },
     { id: 'gopro', name: 'Go pro (per day)', price: 600 },
-    { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 200 },
-    { id: 'paddle_day', name: 'Paddle board (per day)', price: 600 },
+    { id: 'paddle_hour', name: 'Paddle board (per hour)', price: 200, commission: 20 },
+    { id: 'paddle_day', name: 'Paddle board (per day)', price: 600, commission: 50 },
 ];
 
 const MOCK_PAYMENT_TYPES: PaymentType[] = [
@@ -229,7 +229,7 @@ const App: React.FC = () => {
   const generateId = () => `id_${new Date().getTime()}`;
 
   // Booking Handler for Activity
-  const handleBookActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => {
+  const handleBookActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) {
         console.error("Activity not found!");
@@ -268,7 +268,7 @@ const App: React.FC = () => {
   };
 
   // Booking Handler for External Activity
-  const handleBookExternalActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => {
+  const handleBookExternalActivity = (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) {
         console.error("Activity not found!");
@@ -362,14 +362,19 @@ const App: React.FC = () => {
     };
 
     // Booking Handler for Standalone Extra
-    const handleBookStandaloneExtra = (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity: number = 1) => {
+    const handleBookStandaloneExtra = (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity: number = 1, employeeCommission?: number) => {
         const finalPrice = extra.price * quantity;
         
         let itemName = extra.name;
-        if (extra.id === 'paddle_hour') {
-            const hoursText = quantity === 1 ? '1 hour' : `${quantity} hours`;
-            itemName = `${extra.name} (${hoursText})`;
+        if (extra.id === 'paddle_hour' && quantity > 1) {
+            itemName = `${extra.name} (${quantity} hours)`;
+        } else if (extra.id === 'paddle_day' && quantity > 1) {
+            itemName = `${extra.name} (${quantity} days)`;
+        } else if (quantity > 1) {
+            itemName = `${extra.name} (x${quantity})`;
         }
+
+        const totalEmployeeCommission = employeeCommission ? employeeCommission * quantity : undefined;
 
         const newBooking: Booking = {
             id: generateId(),
@@ -382,10 +387,16 @@ const App: React.FC = () => {
             numberOfPeople: quantity, // Using this field to store quantity/hours
             paymentMethod,
             receiptImage,
+            employeeCommission: totalEmployeeCommission,
         };
         setBookings(prev => [...prev, newBooking]);
         const staffMember = staff.find(s => s.id === staffId);
-        alert(`Sold ${itemName} for ${finalPrice} THB by ${staffMember?.name} on ${bookingDate}.`);
+        
+        let alertMessage = `Sold ${itemName} for ${finalPrice} THB by ${staffMember?.name} on ${bookingDate}.`;
+        if (totalEmployeeCommission) {
+            alertMessage += `\nEmployee Commission: ${totalEmployeeCommission} THB`;
+        }
+        alert(alertMessage);
     };
 
     // Booking Handler for Taxi Boat
@@ -413,9 +424,13 @@ const App: React.FC = () => {
         alert(`Taxi Boat (${taxiOption.name}) booked for ${numberOfPeople} person(s) at ${taxiOption.price * numberOfPeople} THB by ${staffMember?.name} on ${bookingDate}.\nEmployee Commission: ${totalEmployeeCommission || 0} THB`);
     };
 
-    // Update handler for Bookings (e.g., commissions)
+    // CRUD Handlers for Bookings
     const handleUpdateBooking = (updatedBooking: Booking) => {
         setBookings(bookings.map(b => b.id === updatedBooking.id ? updatedBooking : b));
+    };
+
+    const handleDeleteBooking = (bookingId: string) => {
+        setBookings(bookings.filter(b => b.id !== bookingId));
     };
 
 
@@ -587,6 +602,7 @@ const App: React.FC = () => {
                     onBookStandaloneExtra={handleBookStandaloneExtra}
                     onBookTaxiBoat={handleBookTaxiBoat}
                     onUpdateBooking={handleUpdateBooking}
+                    onDeleteBooking={handleDeleteBooking}
                     onAddExternalSale={handleAddExternalSale}
                     onUpdateExternalSale={handleUpdateExternalSale}
                     onDeleteExternalSale={handleDeleteExternalSale}

@@ -139,6 +139,7 @@ export interface Extra {
   id: string;
   name: string;
   price: number;
+  commission?: number;
 }
 
 export interface WalkInGuest {
@@ -180,7 +181,7 @@ export interface Booking {
   customerPrice: number;
   numberOfPeople: number;
   discount?: number;
-  extras?: Omit<Extra, 'id'>[];
+  extras?: Omit<Extra, 'id' | 'commission'>[];
   extrasTotal?: number;
   paymentMethod: string;
   receiptImage?: string; // base64 encoded image

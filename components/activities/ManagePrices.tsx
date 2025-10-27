@@ -38,19 +38,22 @@ interface ExtraFormProps {
     onClose: () => void;
 }
 const ExtraForm: React.FC<ExtraFormProps> = ({ onSave, onClose }) => {
-    const [formData, setFormData] = useState({ name: '', price: '' });
+    const [formData, setFormData] = useState({ name: '', price: '', commission: '' });
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
     };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...formData, price: Number(formData.price) });
+        onSave({ ...formData, price: Number(formData.price), commission: Number(formData.commission) || undefined });
         onClose();
     };
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div><label htmlFor="name" className="block text-sm font-medium text-slate-700">Extra Name</label><input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
-            <div><label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label><input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label><input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" /></div>
+              <div><label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (THB)</label><input type="number" id="commission" value={formData.commission} onChange={handleChange} className="mt-1 block w-full input-field" /></div>
+            </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Extra</button>
@@ -136,6 +139,7 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
   currencySymbol?: string;
 }
 
+// Fix: Refactor component from a function declaration to a const with an arrow function to resolve JSX typing issues with generic components.
 const EditablePriceItem = <T extends { id: string; name: string; price: number }>({
   item,
   onSave,
@@ -207,6 +211,65 @@ const EditableSpeedBoatPriceItem: React.FC<EditableSpeedBoatPriceItemProps> = ({
         </div>
     );
 };
+
+interface EditableExtraItemProps {
+  item: Extra;
+  onSave: (item: Extra) => void;
+  onDelete: (id: string) => void;
+}
+const EditableExtraItem: React.FC<EditableExtraItemProps> = ({ item, onSave, onDelete }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [price, setPrice] = useState(item.price.toString());
+    const [commission, setCommission] = useState(item.commission?.toString() || '');
+
+    const handleSave = () => {
+        const newPrice = Number(price);
+        const newCommission = commission ? Number(commission) : undefined;
+        if (!isNaN(newPrice) && newPrice >= 0 && (commission === '' || (!isNaN(newCommission) && newCommission >= 0))) {
+            onSave({ ...item, price: newPrice, commission: newCommission });
+            setIsEditing(false);
+        } else {
+            alert('Please enter valid price and commission values.');
+        }
+    };
+    const handleDelete = () => { if (window.confirm(`Delete "${item.name}"?`)) { onDelete(item.id); } };
+    
+    return (
+        <div className="flex flex-wrap justify-between items-center p-3 bg-slate-50 rounded-lg border gap-2">
+            <div className="flex-grow">
+                <p className="text-sm font-medium">{item.name}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+                {isEditing ? (
+                    <>
+                        <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">Price:</span>
+                            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-28 text-sm pl-12 pr-2 py-1 border rounded-md" />
+                        </div>
+                        <div className="relative">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">Comm:</span>
+                            <input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} className="w-28 text-sm pl-12 pr-2 py-1 border rounded-md" placeholder="e.g. 20" />
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <span className="text-sm text-slate-600 w-28 text-right">Price: THB {item.price.toLocaleString()}</span>
+                        <span className="text-sm text-slate-600 w-28 text-right">Comm: THB {item.commission?.toLocaleString() || '0'}</span>
+                    </>
+                )}
+                {isEditing ? (
+                    <button onClick={handleSave} className="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-md">Save</button>
+                ) : (
+                    <>
+                        <button onClick={() => setIsEditing(true)}><EditIcon className="w-4 h-4" /></button>
+                        <button onClick={handleDelete}><TrashIcon className="w-4 h-4" /></button>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
 
 interface EditablePaymentTypeItemProps {
     item: PaymentType;
@@ -294,8 +357,8 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
 
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Activity Prices</h2><button onClick={() => setModal('activity')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Activity</button></div>
-                {/* Fix: Removed explicit generic type from EditablePriceItem to allow React to handle the `key` prop correctly during type inference. */}
-                <div className="space-y-3">{activities.map(activity => ( <EditablePriceItem key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} /> ))}</div>
+                {/* Fix: Explicitly provide generic type to EditablePriceItem to ensure correct type inference. */}
+                <div className="space-y-3">{activities.map(activity => ( <EditablePriceItem<Activity> key={activity.id} item={activity} onSave={onUpdateActivity} onDelete={onDeleteActivity} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Speed Boat Prices</h2><button onClick={() => setModal('speedboat')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Speed Boat</button></div>
@@ -303,13 +366,12 @@ const ManagePrices: React.FC<ManagePricesProps> = ({ activities, speedBoatTrips,
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Taxi Boat Prices</h2><button onClick={() => setModal('taxi')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Taxi Option</button></div>
-                {/* Fix: Removed explicit generic type from EditablePriceItem to allow React to handle the `key` prop correctly during type inference. */}
-                <div className="space-y-3">{taxiBoatOptions.map(option => ( <EditablePriceItem key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} /> ))}</div>
+                {/* Fix: Explicitly provide generic type to EditablePriceItem to ensure correct type inference. */}
+                <div className="space-y-3">{taxiBoatOptions.map(option => ( <EditablePriceItem<TaxiBoatOption> key={option.id} item={option} onSave={onUpdateTaxiBoatOption} onDelete={onDeleteTaxiBoatOption} /> ))}</div>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Extras Prices</h2><button onClick={() => setModal('extra')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Extra</button></div>
-                {/* Fix: Removed explicit generic type from EditablePriceItem to allow React to handle the `key` prop correctly during type inference. */}
-                <div className="space-y-3">{extras.map(extra => ( <EditablePriceItem key={extra.id} item={extra} onSave={onUpdateExtra} onDelete={onDeleteExtra} /> ))}</div>
+                <div className="space-y-3">{extras.map(extra => ( <EditableExtraItem key={extra.id} item={extra} onSave={onUpdateExtra} onDelete={onDeleteExtra} /> ))}</div>
             </div>
              <div className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex justify-between items-center mb-4 border-b pb-2"><h2 className="text-xl font-bold text-slate-800">Payment Methods</h2><button onClick={() => setModal('payment')} className="flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800"><PlusIcon className="w-4 h-4 mr-1"/> Add Method</button></div>

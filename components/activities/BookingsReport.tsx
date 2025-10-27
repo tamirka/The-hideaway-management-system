@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room } from '../../types';
+import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra } from '../../types';
 import Modal from '../Modal';
 // Fix: Import newly added TrendingUpIcon and BuildingOfficeIcon.
 import { PlusIcon, EditIcon, TrashIcon, EyeIcon, CurrencyDollarIcon, ReceiptPercentIcon, TrendingUpIcon, BuildingOfficeIcon } from '../../constants';
@@ -101,58 +101,6 @@ const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClo
     );
 };
 
-interface EditBookingFormProps {
-    booking: Booking;
-    onSave: (booking: Booking) => void;
-    onClose: () => void;
-}
-const EditBookingForm: React.FC<EditBookingFormProps> = ({ booking, onSave, onClose }) => {
-    const [employeeCommission, setEmployeeCommission] = useState(booking.employeeCommission?.toString() || '');
-    const [hostelCommission, setHostelCommission] = useState(booking.hostelCommission?.toString() || '');
-
-    const handleSave = () => {
-        const updatedBooking = {
-            ...booking,
-            employeeCommission: Number(employeeCommission) || undefined,
-            hostelCommission: Number(hostelCommission) || undefined,
-        };
-        onSave(updatedBooking);
-        onClose();
-    };
-
-    const canEditEmployeeCommission = ['activity', 'external_activity', 'private_tour'].includes(booking.itemType);
-    const canEditHostelCommission = booking.itemType === 'private_tour';
-
-    return (
-        <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
-            <div className="p-4 bg-slate-50 rounded-lg">
-                <p><span className="font-semibold">Item:</span> {booking.itemName}</p>
-                <p><span className="font-semibold">Date:</span> {booking.bookingDate}</p>
-            </div>
-            {canEditEmployeeCommission && (
-                <div>
-                    <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (THB)</label>
-                    <input type="number" id="employeeCommission" value={employeeCommission} onChange={(e) => setEmployeeCommission(e.target.value)} className="mt-1 block w-full input-field" />
-                </div>
-            )}
-            {canEditHostelCommission && (
-                <div>
-                    <label htmlFor="hostelCommission" className="block text-sm font-medium text-slate-700">Hostel Commission (THB)</label>
-                    <input type="number" id="hostelCommission" value={hostelCommission} onChange={(e) => setHostelCommission(e.target.value)} className="mt-1 block w-full input-field" />
-                </div>
-            )}
-            {!canEditEmployeeCommission && !canEditHostelCommission && (
-                <p className="text-sm text-slate-600">This booking type does not support commissions.</p>
-            )}
-            <div className="flex justify-end space-x-2 pt-4">
-                <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
-            </div>
-        </form>
-    );
-};
-
-
 // --- Main Component ---
 interface BookingsReportProps {
   bookings: Booking[];
@@ -164,8 +112,13 @@ interface BookingsReportProps {
   accommodationBookings: AccommodationBooking[];
   staff: Staff[];
   speedBoatTrips: SpeedBoatTrip[];
+  activities: Activity[];
+  taxiBoatOptions: TaxiBoatOption[];
+  extras: Extra[];
   rooms: Room[];
+  paymentTypes: PaymentType[];
   onUpdateBooking: (updatedBooking: Booking) => void;
+  onDeleteBooking: (bookingId: string) => void;
   onAddExternalSale: (newSale: Omit<ExternalSale, 'id'>) => void;
   onUpdateExternalSale: (updatedSale: ExternalSale) => void;
   onDeleteExternalSale: (saleId: string) => void;
@@ -174,7 +127,7 @@ interface BookingsReportProps {
   onDeletePlatformPayment: (paymentId: string) => void;
 }
 
-const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, staff, speedBoatTrips, rooms, onUpdateBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment }) => {
+const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, staff, speedBoatTrips, activities, taxiBoatOptions, extras, rooms, paymentTypes, onUpdateBooking, onDeleteBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment }) => {
     // State
     const [reportGranularity, setReportGranularity] = useState<'monthly' | 'yearly'>('monthly');
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
@@ -191,6 +144,166 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
     const roomMap = useMemo(() => new Map(rooms.map(r => [r.id, r.name])), [rooms]);
 
+    const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+    // --- Edit Booking Form ---
+    interface FullEditBookingFormProps {
+        booking: Booking;
+        staff: Staff[];
+        paymentTypes: PaymentType[];
+        activities: Activity[];
+        speedBoatTrips: SpeedBoatTrip[];
+        taxiBoatOptions: TaxiBoatOption[];
+        extras: Extra[];
+        onSave: (booking: Booking) => void;
+        onClose: () => void;
+    }
+    const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose }) => {
+        const [formData, setFormData] = useState<Booking>(booking);
+
+        const availableItems = useMemo(() => {
+            switch (booking.itemType) {
+                case 'activity':
+                case 'external_activity':
+                    return activities;
+                case 'speedboat':
+                    return speedBoatTrips;
+                case 'taxi_boat':
+                    return taxiBoatOptions;
+                case 'extra':
+                    return extras;
+                default:
+                    return [];
+            }
+        }, [booking.itemType, activities, speedBoatTrips, taxiBoatOptions, extras]);
+
+        const handleFormChange = (field: keyof Booking, value: any) => {
+            setFormData(prev => ({ ...prev, [field]: value }));
+        };
+        
+        useEffect(() => {
+            const selectedItem = availableItems.find(item => item.id === formData.itemId);
+            if (!selectedItem) return;
+
+            const numPeople = Number(formData.numberOfPeople) || 1;
+            let newPrice = 0;
+            let newItemCost = 0;
+            let newCommission = selectedItem.commission || 0;
+
+            if ('price' in selectedItem) {
+                newPrice = selectedItem.price * numPeople;
+            }
+            if ('cost' in selectedItem) {
+                newItemCost = (selectedItem as SpeedBoatTrip).cost * numPeople;
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                itemName: 'route' in selectedItem ? `${(selectedItem as SpeedBoatTrip).route} (${(selectedItem as SpeedBoatTrip).company})` : selectedItem.name,
+                customerPrice: newPrice,
+                itemCost: newItemCost > 0 ? newItemCost : undefined,
+                employeeCommission: newCommission * numPeople,
+            }));
+        }, [formData.itemId, formData.numberOfPeople]);
+
+        const handleSave = () => {
+            const finalData: Booking = { ...formData };
+            // Ensure numeric fields are numbers
+            (Object.keys(finalData) as Array<keyof Booking>).forEach(key => {
+                const numericKeys: (keyof Booking)[] = ['customerPrice', 'numberOfPeople', 'discount', 'extrasTotal', 'fuelCost', 'captainCost', 'itemCost', 'employeeCommission', 'hostelCommission'];
+                if (numericKeys.includes(key)) {
+                    const value = finalData[key] as any;
+                    (finalData as any)[key] = value === '' || value === null || isNaN(Number(value)) ? undefined : Number(value);
+                }
+            });
+            onSave(finalData);
+        };
+        
+        const canEditCosts = ['activity', 'private_tour'].includes(booking.itemType);
+        
+        return (
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Booking Date</label>
+                        <input type="date" value={formData.bookingDate} onChange={e => handleFormChange('bookingDate', e.target.value)} className="mt-1 block w-full input-field" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Staff Member</label>
+                        <select value={formData.staffId} onChange={e => handleFormChange('staffId', e.target.value)} className="mt-1 block w-full input-field">
+                            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                    </div>
+                 </div>
+                 <div className="border-t pt-4">
+                    {availableItems.length > 0 ? (
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">Item</label>
+                            <select value={formData.itemId} onChange={e => handleFormChange('itemId', e.target.value)} className="mt-1 block w-full input-field">
+                                {availableItems.map(item => <option key={item.id} value={item.id}>{ 'route' in item ? `${(item as SpeedBoatTrip).route} (${(item as SpeedBoatTrip).company})` : item.name}</option>)}
+                            </select>
+                        </div>
+                    ) : (
+                        <div>
+                           <label className="block text-sm font-medium text-slate-700">Item Name</label>
+                           <input type="text" value={formData.itemName} onChange={e => handleFormChange('itemName', e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700">Number of People</label>
+                        <input type="number" value={formData.numberOfPeople} onChange={e => handleFormChange('numberOfPeople', e.target.value)} min="1" className="mt-1 block w-full input-field" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Total Price (THB)</label>
+                        <input type="number" value={formData.customerPrice} onChange={e => handleFormChange('customerPrice', e.target.value)} className="mt-1 block w-full input-field" />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700">Discount (THB)</label>
+                        <input type="number" value={formData.discount || ''} onChange={e => handleFormChange('discount', e.target.value)} className="mt-1 block w-full input-field" />
+                    </div>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                     {canEditCosts && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Fuel Cost (THB)</label>
+                                <input type="number" value={formData.fuelCost || ''} onChange={e => handleFormChange('fuelCost', e.target.value)} className="mt-1 block w-full input-field" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Captain Cost (THB)</label>
+                                <input type="number" value={formData.captainCost || ''} onChange={e => handleFormChange('captainCost', e.target.value)} className="mt-1 block w-full input-field" />
+                            </div>
+                        </>
+                    )}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700">Employee Commission (Total)</label>
+                        <input type="number" value={formData.employeeCommission || ''} onChange={e => handleFormChange('employeeCommission', e.target.value)} className="mt-1 block w-full input-field" />
+                    </div>
+                    {booking.itemType === 'private_tour' && (
+                         <div>
+                            <label className="block text-sm font-medium text-slate-700">Hostel Commission (Total)</label>
+                            <input type="number" value={formData.hostelCommission || ''} onChange={e => handleFormChange('hostelCommission', e.target.value)} className="mt-1 block w-full input-field" />
+                        </div>
+                    )}
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700">Payment Method</label>
+                        <select value={formData.paymentMethod} onChange={e => handleFormChange('paymentMethod', e.target.value)} className="mt-1 block w-full input-field">
+                            {paymentTypes.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
+                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+                </div>
+            </form>
+        );
+    };
+
+
     // Handlers
     const handleCloseModals = () => {
         setViewingReceipt(null);
@@ -206,6 +319,11 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const handleOpenPlatformPaymentModal = (payment?: PlatformPayment) => { setEditingPlatformPayment(payment || null); setIsPlatformPaymentModalOpen(true); };
     const handleSavePlatformPayment = (paymentData: Omit<PlatformPayment, 'id'> | PlatformPayment) => { if ('id' in paymentData) { onUpdatePlatformPayment(paymentData); } else { onAddPlatformPayment(paymentData); } handleCloseModals(); };
     const handleOpenEditBookingModal = (booking: Booking) => { setEditingBooking(booking); setIsEditBookingModalOpen(true); };
+    const handleDeleteBookingPrompt = (booking: Booking) => {
+        if (window.confirm(`Are you sure you want to delete the booking for "${booking.itemName}" on ${booking.bookingDate}? This action cannot be undone.`)) {
+            onDeleteBooking(booking.id);
+        }
+    };
 
 
     // Memos for data processing...
@@ -267,10 +385,10 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
-        // Fix: Correctly typed the reduce accumulator to ensure Object.entries infers the correct value type.
+        // Fix: Add explicit type to reduce accumulator to fix type inference issue.
         const companyDebts = filteredBookings
             .filter(b => b.itemType === 'speedboat')
-            .reduce((acc: Record<string, number>, booking) => {
+            .reduce<Record<string, number>>((acc, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
@@ -279,7 +397,6 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         return { totalRevenue, totalAccommodationRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
     
-    const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
     return (
         <div className="space-y-6">
@@ -337,7 +454,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Company Name</th><th className="px-6 py-3">Amount to Pay</th></tr></thead>
                     <tbody>
-                        {Object.entries(reportData.companyDebts).map(([c, a]) => <tr key={c} className="bg-white border-b"><td className="px-6 py-4 font-medium">{c}</td><td className="px-6 py-4 font-bold text-red-600">{currencyFormat(a)}</td></tr>)}
+                        {Object.entries(reportData.companyDebts).map(([c, a]) => <tr key={c} className="bg-white border-b"><td className="px-6 py-4 font-medium">{c}</td><td className="px-6 py-4 font-bold text-red-600">{currencyFormat(a as number)}</td></tr>)}
                         {Object.keys(reportData.companyDebts).length === 0 && (<tr><td colSpan={2} className="text-center p-4">No payments due.</td></tr>)}
                     </tbody>
                 </table>
@@ -376,7 +493,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                      <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Item</th><th className="px-6 py-3">Staff</th><th className="px-6 py-3">Price</th><th className="px-6 py-3">Hostel C.</th><th className="px-6 py-3">Employee C.</th><th className="px-6 py-3">Receipt</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
-                        {filteredBookings.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.hostelCommission ? currencyFormat(b.hostelCommission) : 'N/A'}</td><td className="px-6 py-4">{b.employeeCommission ? currencyFormat(b.employeeCommission) : 'N/A'}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><button onClick={() => handleOpenEditBookingModal(b)}><EditIcon/></button></td></tr>)}
+                        {filteredBookings.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.hostelCommission ? currencyFormat(b.hostelCommission) : 'N/A'}</td><td className="px-6 py-4">{b.employeeCommission ? currencyFormat(b.employeeCommission) : 'N/A'}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenEditBookingModal(b)} className="text-slate-500 hover:text-blue-600"><EditIcon/></button><button onClick={() => handleDeleteBookingPrompt(b)} className="text-slate-500 hover:text-red-600"><TrashIcon/></button></div></td></tr>)}
                         {filteredBookings.length === 0 && (<tr><td colSpan={9} className="text-center p-4">No bookings.</td></tr>)}
                      </tbody>
                 </table>
@@ -392,8 +509,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             <Modal isOpen={!!viewingReceipt} onClose={() => setViewingReceipt(null)} title="View Receipt">
                 {viewingReceipt && <img src={viewingReceipt} alt="Receipt" className="w-full h-auto rounded-md" />}
             </Modal>
-            <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title="Edit Booking Commissions">
-                {editingBooking && <EditBookingForm booking={editingBooking} onSave={onUpdateBooking} onClose={handleCloseModals} />}
+            <Modal isOpen={isEditBookingModalOpen} onClose={handleCloseModals} title="Edit Full Booking Details">
+                {editingBooking && <FullEditBookingForm booking={editingBooking} staff={staff} paymentTypes={paymentTypes} activities={activities} speedBoatTrips={speedBoatTrips} taxiBoatOptions={taxiBoatOptions} extras={extras} onSave={onUpdateBooking} onClose={handleCloseModals} />}
             </Modal>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </div>

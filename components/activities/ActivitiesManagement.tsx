@@ -52,13 +52,14 @@ interface ActivitiesManagementProps {
   accommodationBookings: AccommodationBooking[];
   rooms: Room[];
   paymentTypes: PaymentType[];
-  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => void;
+  onBookActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number) => void;
   onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
-  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
+  onBookExternalActivity: (activityId: string, staffId: string, numberOfPeople: number, discount: number, extras: Omit<Extra, 'id' | 'commission'>[], paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
   onBookPrivateTour: (tourType: 'Half Day' | 'Full Day', price: number, numberOfPeople: number, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, fuelCost?: number, captainCost?: number, employeeCommission?: number, hostelCommission?: number) => void;
-  onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number) => void;
+  onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number, employeeCommission?: number) => void;
   onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
   onUpdateBooking: (updatedBooking: Booking) => void;
+  onDeleteBooking: (bookingId: string) => void;
   onAddExternalSale: (newSale: Omit<ExternalSale, 'id'>) => void;
   onUpdateExternalSale: (updatedSale: ExternalSale) => void;
   onDeleteExternalSale: (saleId: string) => void;
@@ -166,8 +167,13 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         accommodationBookings={props.accommodationBookings}
                         staff={props.staff}
                         speedBoatTrips={props.speedBoatTrips}
+                        activities={props.activities}
+                        taxiBoatOptions={props.taxiBoatOptions}
+                        extras={props.extras}
                         rooms={props.rooms}
+                        paymentTypes={props.paymentTypes}
                         onUpdateBooking={props.onUpdateBooking}
+                        onDeleteBooking={props.onDeleteBooking}
                         onAddExternalSale={props.onAddExternalSale}
                         onUpdateExternalSale={props.onUpdateExternalSale}
                         onDeleteExternalSale={props.onDeleteExternalSale}

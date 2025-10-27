@@ -15,6 +15,7 @@ const ExtraForm: React.FC<ExtraFormProps> = ({ onSave, onClose, initialData }) =
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         price: initialData?.price.toString() || '',
+        commission: initialData?.commission?.toString() || '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +28,7 @@ const ExtraForm: React.FC<ExtraFormProps> = ({ onSave, onClose, initialData }) =
         const extraData = {
             ...formData,
             price: Number(formData.price) || 0,
+            commission: Number(formData.commission) || undefined,
         };
         if (initialData) {
             onSave({ ...initialData, ...extraData });
@@ -42,9 +44,15 @@ const ExtraForm: React.FC<ExtraFormProps> = ({ onSave, onClose, initialData }) =
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700">Extra Name</label>
                 <input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
-            <div>
-                <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
-                <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                  <label htmlFor="price" className="block text-sm font-medium text-slate-700">Price (THB)</label>
+                  <input type="number" id="price" value={formData.price} onChange={handleChange} required className="mt-1 block w-full input-field" />
+              </div>
+              <div>
+                  <label htmlFor="commission" className="block text-sm font-medium text-slate-700">Default Commission (THB)</label>
+                  <input type="number" id="commission" value={formData.commission} onChange={handleChange} className="mt-1 block w-full input-field" />
+              </div>
             </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
@@ -103,7 +111,7 @@ interface SellExtrasProps {
     extras: Extra[];
     staff: Staff[];
     paymentTypes: PaymentType[];
-    onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number) => void;
+    onBookStandaloneExtra: (extra: Extra, staffId: string, paymentMethod: string, bookingDate: string, receiptImage?: string, quantity?: number, employeeCommission?: number) => void;
     onAddExtra: (newExtra: Omit<Extra, 'id'>) => void;
     onUpdateExtra: (updatedExtra: Extra) => void;
     onDeleteExtra: (extraId: string) => void;
@@ -128,6 +136,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
     const [numberOfHours, setNumberOfHours] = useState('1');
+    const [employeeCommission, setEmployeeCommission] = useState('');
 
     useEffect(() => {
         setPaymentDetails(initialPaymentState);
@@ -138,10 +147,12 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
         setPaymentDetails(initialPaymentState);
         setBookingDate(new Date().toISOString().split('T')[0]);
         setNumberOfHours('1');
+        setEmployeeCommission('');
     };
 
     const handleOpenExtraModal = (extra: Extra) => {
         resetFormStates();
+        setEmployeeCommission(extra.commission?.toString() || '0');
         setSelectedExtra(extra);
         setIsExtraModalOpen(true);
     };
@@ -157,7 +168,7 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
     const handleBookExtra = () => {
         if (!selectedExtra || !selectedStaffId) return alert('Please select a staff member.');
         const quantity = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
-        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage, quantity);
+        onBookStandaloneExtra(selectedExtra, selectedStaffId, paymentDetails.method, bookingDate, paymentDetails.receiptImage, quantity, Number(employeeCommission) || undefined);
         handleCloseModals();
     };
 
@@ -221,12 +232,27 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                         </div>
                     )}
 
-                    <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} currentUserRole={Role.Admin} />
+                    <CommonFormFields staff={staff} selectedStaffId={selectedStaffId} onStaffChange={setSelectedStaffId} currentUserRole={currentUserRole} />
+                    
+                    {currentUserRole === Role.Admin && (
+                        <div>
+                            <label htmlFor="employeeCommission" className="block text-sm font-medium text-slate-700">Employee Commission (per item/hour)</label>
+                            <input 
+                                type="number" 
+                                id="employeeCommission" 
+                                value={employeeCommission} 
+                                onChange={(e) => setEmployeeCommission(e.target.value)} 
+                                className="mt-1 block w-full input-field" 
+                            />
+                        </div>
+                    )}
+                    
                     <PaymentFormFields paymentDetails={paymentDetails} onPaymentChange={setPaymentDetails} paymentTypes={paymentTypes} />
                     
                     {selectedExtra && (() => {
-                        const hours = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
-                        const total = (selectedExtra.price || 0) * hours;
+                        const quantity = selectedExtra.id === 'paddle_hour' ? Number(numberOfHours) || 1 : 1;
+                        const total = (selectedExtra.price || 0) * quantity;
+                        const totalCommission = (Number(employeeCommission) || 0) * quantity;
                         return (
                             <div className="mt-6 p-4 bg-slate-50 rounded-lg">
                                 <h4 className="text-lg font-semibold text-slate-800 mb-2">Sale Summary</h4>
@@ -235,6 +261,12 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                                         <span>Total Price</span>
                                         <span>{`฿${total.toLocaleString()}`}</span>
                                     </div>
+                                    {currentUserRole === Role.Admin && totalCommission > 0 && (
+                                        <div className="flex justify-between text-orange-600">
+                                            <span>Employee Commission</span>
+                                            <span>{`฿${totalCommission.toLocaleString()}`}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -271,7 +303,10 @@ const SellExtras: React.FC<SellExtrasProps> = ({ extras, staff, paymentTypes, on
                             <div key={extra.id} className="flex justify-between items-center p-2 bg-white rounded-md shadow-sm border">
                                 <div>
                                     <p className="font-medium text-slate-800">{extra.name}</p>
-                                    <p className="text-xs text-slate-500">Price: {extra.price} THB</p>
+                                    <p className="text-xs text-slate-500">
+                                        Price: {extra.price} THB
+                                        {extra.commission ? ` | Commission: ${extra.commission} THB` : ''}
+                                    </p>
                                 </div>
                                 <div className="flex space-x-3">
                                     <button onClick={() => handleEditExtra(extra)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
