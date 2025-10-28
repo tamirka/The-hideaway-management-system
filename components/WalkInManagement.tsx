@@ -341,12 +341,19 @@ interface GuestCardProps {
     type: 'walk-in' | 'booking';
     roomMap: Map<string, string>;
     onEdit: (guest: WalkInGuest | AccommodationBooking, type: 'walk-in' | 'booking') => void;
+    onDelete: (guestId: string, type: 'walk-in' | 'booking') => void;
     onCollectPayment: (guest: WalkInGuest | AccommodationBooking, type: 'walk-in' | 'booking') => void;
 }
 
-const GuestCard: React.FC<GuestCardProps> = ({ guest, type, roomMap, onEdit, onCollectPayment }) => {
+const GuestCard: React.FC<GuestCardProps> = ({ guest, type, roomMap, onEdit, onDelete, onCollectPayment }) => {
     const totalCost = type === 'walk-in' ? (guest as WalkInGuest).pricePerNight * guest.numberOfNights : (guest as AccommodationBooking).totalPrice;
     const remainingBalance = totalCost - guest.amountPaid;
+
+    const handleDeleteClick = () => {
+        if (window.confirm(`Are you sure you want to delete this entry for ${guest.guestName}? This cannot be undone.`)) {
+            onDelete(guest.id, type);
+        }
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md flex flex-col transition-all duration-300 hover:shadow-lg">
@@ -360,6 +367,7 @@ const GuestCard: React.FC<GuestCardProps> = ({ guest, type, roomMap, onEdit, onC
                 <div className="flex items-center space-x-2">
                     <Badge status={guest.status} />
                     <button onClick={() => onEdit(guest, type)} className="text-slate-500 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
+                    <button onClick={handleDeleteClick} className="text-slate-500 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
                 </div>
             </div>
             <div className="p-4 space-y-3 flex-grow text-sm">
@@ -451,6 +459,14 @@ const WalkInManagement: React.FC<BookingManagementProps> = ({ rooms, walkInGuest
     }
   };
 
+  const handleDelete = (guestId: string, type: 'walk-in' | 'booking') => {
+    if (type === 'walk-in') {
+      onDeleteWalkInGuest(guestId);
+    } else {
+      onDeleteAccommodationBooking(guestId);
+    }
+  };
+
   const handleWalkInSubmit = (guestData: Omit<WalkInGuest, 'id'> | WalkInGuest) => {
     if ('id' in guestData) {
         onUpdateWalkInGuest(guestData as WalkInGuest);
@@ -520,7 +536,8 @@ const WalkInManagement: React.FC<BookingManagementProps> = ({ rooms, walkInGuest
                         guest={booking} 
                         type="booking" 
                         roomMap={roomMap} 
-                        onEdit={handleEdit} 
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
                         onCollectPayment={openPaymentModal}/>
                     )}
                 </div>
@@ -532,7 +549,8 @@ const WalkInManagement: React.FC<BookingManagementProps> = ({ rooms, walkInGuest
                         guest={guest} 
                         type="walk-in" 
                         roomMap={roomMap} 
-                        onEdit={handleEdit} 
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
                         onCollectPayment={openPaymentModal} />
                     )}
                 </div>

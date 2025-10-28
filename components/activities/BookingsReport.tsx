@@ -209,7 +209,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         }, [formData.itemId, formData.numberOfPeople, availableItems]);
 
         const handleSave = () => {
-            const finalData: Booking = { ...formData };
+            // Fix: Changed the type of `finalData` from `Booking` to `any` to prevent type errors when spreading `formData`, which contains string values for number fields. The conversion logic below ensures the final object shape is correct before saving.
+            const finalData: any = { ...formData };
             // Ensure numeric fields are numbers
             (Object.keys(finalData) as Array<keyof Booking>).forEach(key => {
                 const numericKeys: (keyof Booking)[] = ['customerPrice', 'numberOfPeople', 'discount', 'extrasTotal', 'fuelCost', 'captainCost', 'itemCost', 'employeeCommission', 'hostelCommission'];
@@ -592,7 +593,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                             </li>
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
                             <li className="flex justify-between font-bold text-blue-700 mt-2 pt-2 border-t border-dashed">
-                                <span>Remaining Expenses to be Paid:</span>
+                                <span> Expenses without salary:</span>
                                 <span>{currencyFormat(reportData.remainingExpensesToBePaid)}</span>
                             </li>
                         </ul>
