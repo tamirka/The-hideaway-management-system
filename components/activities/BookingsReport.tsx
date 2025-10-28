@@ -1,6 +1,5 @@
-// Fix: Add missing React and hooks import to resolve multiple 'Cannot find name' errors.
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra } from '../../types';
+import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra, Absence } from '../../types';
 import Modal from '../Modal';
 import { PlusIcon, EditIcon, TrashIcon, EyeIcon, CurrencyDollarIcon, ReceiptPercentIcon, TrendingUpIcon, BuildingOfficeIcon } from '../../constants';
 
@@ -108,6 +107,7 @@ interface BookingsReportProps {
   platformPayments: PlatformPayment[];
   utilityRecords: UtilityRecord[];
   salaryAdvances: SalaryAdvance[];
+  absences: Absence[];
   walkInGuests: WalkInGuest[];
   accommodationBookings: AccommodationBooking[];
   staff: Staff[];
@@ -127,7 +127,7 @@ interface BookingsReportProps {
   onDeletePlatformPayment: (paymentId: string) => void;
 }
 
-const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, walkInGuests, accommodationBookings, staff, speedBoatTrips, activities, taxiBoatOptions, extras, rooms, paymentTypes, onUpdateBooking, onDeleteBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment }) => {
+const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, absences, walkInGuests, accommodationBookings, staff, speedBoatTrips, activities, taxiBoatOptions, extras, rooms, paymentTypes, onUpdateBooking, onDeleteBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment }) => {
     // State
     const [reportGranularity, setReportGranularity] = useState<'monthly' | 'yearly'>('monthly');
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
@@ -318,6 +318,28 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
 
 
     // Handlers
+    const handleGranularityChange = (value: 'monthly' | 'yearly') => {
+        setReportGranularity(value);
+        setSelectedDay('');
+    };
+    const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedMonth(e.target.value);
+        setSelectedDay('');
+    };
+    const handleYearChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedYear(e.target.value);
+        setSelectedDay('');
+    };
+    const handleDayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const day = e.target.value;
+        setSelectedDay(day);
+        if (day) {
+            setReportGranularity('monthly');
+            setSelectedMonth(day.substring(0, 7));
+            setSelectedYear(day.substring(0, 4));
+        }
+    };
+
     const handleCloseModals = () => {
         setViewingReceipt(null);
         setIsExternalSaleModalOpen(false);
@@ -349,51 +371,104 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     }, [reportGranularity, selectedMonth, selectedYear]);
 
     const reportPeriodTitle = useMemo(() => {
+        if (selectedDay) {
+            try {
+                return new Date(selectedDay + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+            } catch {
+                return 'Invalid Date';
+            }
+        }
         if (reportGranularity === 'yearly') { return currentFilter; }
         try { return new Date(selectedMonth + '-02').toLocaleString('default', { month: 'long', year: 'numeric' });
         } catch { return 'Invalid Date'; }
-    }, [reportGranularity, selectedMonth, currentFilter]);
+    }, [reportGranularity, selectedMonth, selectedDay, currentFilter]);
     
-    const filteredBookings = useMemo(() => bookings.filter(b => b.bookingDate.startsWith(currentFilter)), [bookings, currentFilter]);
-    const filteredExternalSales = useMemo(() => externalSales.filter(s => s.date.startsWith(currentFilter)), [externalSales, currentFilter]);
-    const filteredPlatformPayments = useMemo(() => platformPayments.filter(p => p.date.startsWith(currentFilter)), [platformPayments, currentFilter]);
-    const filteredUtilityRecords = useMemo(() => utilityRecords.filter(r => r.date.startsWith(currentFilter)), [utilityRecords, currentFilter]);
-    const filteredSalaryAdvances = useMemo(() => salaryAdvances.filter(a => a.date.startsWith(currentFilter)), [salaryAdvances, currentFilter]);
-    const filteredWalkInGuests = useMemo(() => walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter)), [walkInGuests, currentFilter]);
-    const filteredAccommodationBookings = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
+    // Memos for SUMMARY CARDS and FINANCIAL BREAKDOWN (always use month/year)
+    const filteredBookingsForSummary = useMemo(() => bookings.filter(b => b.bookingDate.startsWith(currentFilter)), [bookings, currentFilter]);
+    const filteredExternalSalesForSummary = useMemo(() => externalSales.filter(s => s.date.startsWith(currentFilter)), [externalSales, currentFilter]);
+    const filteredPlatformPaymentsForSummary = useMemo(() => platformPayments.filter(p => p.date.startsWith(currentFilter)), [platformPayments, currentFilter]);
+    const filteredUtilityRecordsForSummary = useMemo(() => utilityRecords.filter(r => r.date.startsWith(currentFilter)), [utilityRecords, currentFilter]);
+    const filteredSalaryAdvancesForSummary = useMemo(() => salaryAdvances.filter(a => a.date.startsWith(currentFilter)), [salaryAdvances, currentFilter]);
+    const filteredWalkInGuestsForSummary = useMemo(() => walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter)), [walkInGuests, currentFilter]);
+    const filteredAccommodationBookingsForSummary = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
+
+    // Memos for TABLES (use daily filter if available)
+    const filterForTables = (items: Array<{ date?: string; bookingDate?: string; checkInDate?: string }>) => {
+        const key = items[0] ? ('bookingDate' in items[0] ? 'bookingDate' : ('checkInDate' in items[0] ? 'checkInDate' : 'date')) : 'date';
+        if (selectedDay) {
+            return items.filter(item => (item as any)[key] === selectedDay);
+        }
+        return items.filter(item => (item as any)[key]?.startsWith(currentFilter));
+    };
+
+    const bookingsForTables = useMemo(() => filterForTables(bookings), [bookings, currentFilter, selectedDay]);
+    const externalSalesForTables = useMemo(() => filterForTables(externalSales), [externalSales, currentFilter, selectedDay]);
+    const platformPaymentsForTables = useMemo(() => filterForTables(platformPayments), [platformPayments, currentFilter, selectedDay]);
+    const allBookingsForTable = useMemo(() => filterForTables(bookings), [bookings, currentFilter, selectedDay]);
+
 
     const reportData = useMemo(() => {
-        const totalActivityBookingRevenue = filteredBookings.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
-        
-        const totalExtrasRevenue = filteredBookings.reduce((sum, b) => {
+        const totalActivityBookingRevenue = filteredBookingsForSummary.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0);
+        const totalExtrasRevenue = filteredBookingsForSummary.reduce((sum, b) => {
             if (b.itemType === 'extra') {
-                return sum + b.customerPrice - (b.discount || 0); // Standalone extra
+                return sum + b.customerPrice - (b.discount || 0);
             }
-            return sum + (b.extrasTotal || 0); // Extras attached to other bookings
+            return sum + (b.extrasTotal || 0);
         }, 0);
-
-        const totalExternalSales = filteredExternalSales.reduce((sum, s) => sum + s.amount, 0);
-        const totalWalkInRevenue = filteredWalkInGuests.reduce((sum, g) => sum + g.amountPaid, 0);
-        const totalBookingRevenue = filteredAccommodationBookings.reduce((sum, b) => sum + b.amountPaid, 0);
-        const totalPlatformPaymentsRevenue = filteredPlatformPayments.reduce((sum, p) => sum + p.amount, 0);
-
+        const totalExternalSales = filteredExternalSalesForSummary.reduce((sum, s) => sum + s.amount, 0);
+        const totalWalkInRevenue = filteredWalkInGuestsForSummary.reduce((sum, g) => sum + g.amountPaid, 0);
+        const totalBookingRevenue = filteredAccommodationBookingsForSummary.reduce((sum, b) => sum + b.amountPaid, 0);
+        const totalPlatformPaymentsRevenue = filteredPlatformPaymentsForSummary.reduce((sum, p) => sum + p.amount, 0);
         const totalAccommodationRevenue = totalWalkInRevenue + totalBookingRevenue;
         const totalRevenue = totalActivityBookingRevenue + totalExternalSales + totalAccommodationRevenue + totalPlatformPaymentsRevenue;
-        
-        const totalUtilitiesCost = filteredUtilityRecords.reduce((sum, r) => sum + r.cost, 0);
-        const totalItemCosts = filteredBookings.reduce((sum, b) => sum + (b.itemCost || 0), 0);
-        const totalEmployeeCommissions = filteredBookings.reduce((sum, b) => sum + (b.employeeCommission || 0), 0);
+
+        const totalAbsenceDeductions = (() => {
+            if (reportGranularity === 'yearly') {
+                let yearlyDeduction = 0;
+                const year = parseInt(currentFilter);
+                if (isNaN(year)) return 0;
+                for (let month = 1; month <= 12; month++) {
+                    const monthStr = `${currentFilter}-${String(month).padStart(2, '0')}`;
+                    const daysInMonth = new Date(year, month, 0).getDate();
+                    if (daysInMonth === 0) continue;
+                    const monthlyAbsences = absences.filter(a => a.date.startsWith(monthStr));
+                    staff.forEach(s => {
+                        const dailyDeductionRate = s.salary / daysInMonth;
+                        const staffAbsenceCount = monthlyAbsences.filter(a => a.staffId === s.id).length;
+                        yearlyDeduction += staffAbsenceCount * dailyDeductionRate;
+                    });
+                }
+                return yearlyDeduction;
+            } else {
+                let monthlyDeduction = 0;
+                const [year, month] = currentFilter.split('-').map(Number);
+                if (isNaN(year) || isNaN(month)) return 0;
+                const daysInMonth = new Date(year, month, 0).getDate();
+                if (daysInMonth === 0) return 0;
+                const monthlyAbsences = absences.filter(a => a.date.startsWith(currentFilter));
+                staff.forEach(s => {
+                    const dailyDeductionRate = s.salary / daysInMonth;
+                    const staffAbsenceCount = monthlyAbsences.filter(a => a.staffId === s.id).length;
+                    monthlyDeduction += staffAbsenceCount * dailyDeductionRate;
+                });
+                return monthlyDeduction;
+            }
+        })();
+
+        const totalUtilitiesCost = filteredUtilityRecordsForSummary.reduce((sum, r) => sum + r.cost, 0);
+        const totalItemCosts = filteredBookingsForSummary.reduce((sum, b) => sum + (b.itemCost || 0), 0);
+        const totalEmployeeCommissions = filteredBookingsForSummary.reduce((sum, b) => sum + (b.employeeCommission || 0), 0);
         const totalSalaries = staff.reduce((sum, s) => sum + s.salary, 0);
         const totalCalculatedSalaries = reportGranularity === 'yearly' ? totalSalaries * 12 : totalSalaries;
-        const totalSalaryAdvances = filteredSalaryAdvances.reduce((sum, a) => sum + a.amount, 0);
-        const remainingSalaries = totalCalculatedSalaries - totalSalaryAdvances;
-        const totalExpenses = totalUtilitiesCost + totalItemCosts + totalCalculatedSalaries;
+        const netSalaryExpense = totalCalculatedSalaries - totalAbsenceDeductions;
+        const totalSalaryAdvances = filteredSalaryAdvancesForSummary.reduce((sum, a) => sum + a.amount, 0);
+        const remainingSalaries = netSalaryExpense - totalSalaryAdvances;
+        const totalExpenses = totalUtilitiesCost + totalItemCosts + netSalaryExpense + totalEmployeeCommissions;
         const remainingExpensesToBePaid = totalExpenses - totalSalaryAdvances;
-
-        const netProfit = totalRevenue - totalExpenses - totalEmployeeCommissions;
+        const netProfit = totalRevenue - totalExpenses;
 
         const staffPerformance = staff.map(s => {
-            const staffBookings = filteredBookings.filter(b => b.staffId === s.id);
+            const staffBookings = bookingsForTables.filter(b => b.staffId === s.id);
             return {
                 staffId: s.id, staffName: s.name,
                 bookingsCount: staffBookings.length,
@@ -402,32 +477,64 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
-        // Fix: Add explicit type to reduce accumulator to fix type inference issue.
-        const companyDebts = filteredBookings
+        const companyDebts = bookingsForTables
             .filter(b => b.itemType === 'speedboat')
             .reduce((acc: Record<string, number>, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
                 if (trip) { acc[trip.company] = (acc[trip.company] || 0) + (booking.itemCost || 0); }
                 return acc;
-            }, {} as Record<string, number>);
+            }, {});
     
-        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, remainingExpensesToBePaid, netProfit, staffPerformance, companyDebts };
-    }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
+        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, remainingExpensesToBePaid, netProfit, staffPerformance, companyDebts, totalAbsenceDeductions };
+    }, [filteredBookingsForSummary, filteredExternalSalesForSummary, filteredPlatformPaymentsForSummary, filteredUtilityRecordsForSummary, filteredSalaryAdvancesForSummary, filteredWalkInGuestsForSummary, filteredAccommodationBookingsForSummary, staff, speedBoatTrips, reportGranularity, absences, currentFilter, bookingsForTables]);
     
+    // Memos for table totals
+    const activityTotals = useMemo(() => {
+        const filtered = bookingsForTables.filter(b => b.itemType === 'activity');
+        const data = {
+            totalPrice: filtered.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0),
+            totalCost: filtered.reduce((sum, b) => sum + (b.itemCost || 0), 0),
+            totalCommission: filtered.reduce((sum, b) => sum + (b.employeeCommission || 0), 0),
+        };
+        return { ...data, totalProfit: data.totalPrice - data.totalCost - data.totalCommission };
+    }, [bookingsForTables]);
+
+    const boatTotals = useMemo(() => {
+        const filtered = bookingsForTables.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat');
+        const data = {
+            totalPrice: filtered.reduce((sum, b) => sum + b.customerPrice - (b.discount || 0), 0),
+            totalCost: filtered.reduce((sum, b) => sum + (b.itemCost || 0), 0),
+            totalCommission: filtered.reduce((sum, b) => sum + (b.employeeCommission || 0), 0),
+        };
+        return { ...data, totalProfit: data.totalPrice - data.totalCost - data.totalCommission };
+    }, [bookingsForTables]);
+
+    const platformPaymentsTotal = useMemo(() => platformPaymentsForTables.reduce((sum, p) => sum + p.amount, 0), [platformPaymentsForTables]);
+    const externalSalesTotal = useMemo(() => externalSalesForTables.reduce((sum, s) => sum + s.amount, 0), [externalSalesForTables]);
+    const staffPerformanceTotals = useMemo(() => ({
+        totalBookings: reportData.staffPerformance.reduce((sum, p) => sum + p.bookingsCount, 0),
+        totalRevenue: reportData.staffPerformance.reduce((sum, p) => sum + p.totalRevenue, 0),
+        totalCommission: reportData.staffPerformance.reduce((sum, p) => sum + p.totalCommission, 0),
+    }), [reportData.staffPerformance]);
+
 
     return (
         <div className="space-y-6">
             <div className="bg-white p-4 rounded-lg shadow-sm flex flex-wrap items-center gap-x-6 gap-y-4">
-                {/* Filters UI */}
                 <div className="flex items-center space-x-4">
                     <span className="text-sm font-medium text-slate-600">View Report By:</span>
                     <div className="flex items-center space-x-3">
-                        <label className="flex items-center space-x-1 cursor-pointer"><input type="radio" name="granularity" value="monthly" checked={reportGranularity === 'monthly'} onChange={() => setReportGranularity('monthly')} className="form-radio text-blue-600" /><span className="text-sm">Monthly</span></label>
-                        <label className="flex items-center space-x-1 cursor-pointer"><input type="radio" name="granularity" value="yearly" checked={reportGranularity === 'yearly'} onChange={() => setReportGranularity('yearly')} className="form-radio text-blue-600" /><span className="text-sm">Yearly</span></label>
+                        <label className="flex items-center space-x-1 cursor-pointer"><input type="radio" name="granularity" value="monthly" checked={reportGranularity === 'monthly'} onChange={() => handleGranularityChange('monthly')} className="form-radio text-blue-600" /><span className="text-sm">Monthly</span></label>
+                        <label className="flex items-center space-x-1 cursor-pointer"><input type="radio" name="granularity" value="yearly" checked={reportGranularity === 'yearly'} onChange={() => handleGranularityChange('yearly')} className="form-radio text-blue-600" /><span className="text-sm">Yearly</span></label>
                     </div>
                 </div>
-                {reportGranularity === 'monthly' && (<div><label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Month:</label><input type="month" id="month-filter" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1"/></div>)}
-                {reportGranularity === 'yearly' && (<div><label htmlFor="year-filter" className="text-sm font-medium text-slate-600">Year:</label><input type="number" id="year-filter" value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1 w-24"/></div>)}
+                {reportGranularity === 'monthly' && (<div><label htmlFor="month-filter" className="text-sm font-medium text-slate-600">Month:</label><input type="month" id="month-filter" value={selectedMonth} onChange={handleMonthChange} className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1"/></div>)}
+                {reportGranularity === 'yearly' && (<div><label htmlFor="year-filter" className="text-sm font-medium text-slate-600">Year:</label><input type="number" id="year-filter" value={selectedYear} onChange={handleYearChange} className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1 w-24"/></div>)}
+                <div>
+                    <label htmlFor="day-filter" className="text-sm font-medium text-slate-600">Specific Day:</label>
+                    <input type="date" id="day-filter" value={selectedDay} onChange={handleDayChange} className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1"/>
+                </div>
+                {selectedDay && (<button onClick={() => setSelectedDay('')} className="text-sm text-blue-600 hover:underline">View Full Month</button>)}
             </div>
 
             {/* Summary Cards */}
@@ -463,15 +570,19 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                                 <span>↳ Less: Salary Advances Paid:</span>
                                 <span className="font-medium">({currencyFormat(reportData.totalSalaryAdvances)})</span>
                             </li>
+                            <li className="flex justify-between pl-4 text-slate-500">
+                                <span>↳ Less: Absence Deductions:</span>
+                                <span className="font-medium">({currencyFormat(reportData.totalAbsenceDeductions)})</span>
+                            </li>
                             <li className="flex justify-between pl-4 text-slate-600 font-semibold">
                                 <span>↳ Remaining Salaries Payable:</span>
                                 <span className="font-medium">{currencyFormat(reportData.remainingSalaries)}</span>
                             </li>
                             <li className="flex justify-between"><span>Utility Bills:</span> <span className="font-medium">{currencyFormat(reportData.totalUtilitiesCost)}</span></li>
                             <li className="flex justify-between"><span>Activity Item Costs:</span> <span className="font-medium">{currencyFormat(reportData.totalItemCosts)}</span></li>
-                            <li className="flex justify-between pl-4 text-slate-500">
-                                <span>↳ Less: Employee Commissions Paid:</span>
-                                <span className="font-medium">({currencyFormat(reportData.totalEmployeeCommissions)})</span>
+                            <li className="flex justify-between">
+                                <span>Employee Commissions:</span>
+                                <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommissions)}</span>
                             </li>
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
                             <li className="flex justify-between font-bold text-blue-700 mt-2 pt-2 border-t border-dashed">
@@ -499,7 +610,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredBookings
+                        {bookingsForTables
                             .filter(b => b.itemType === 'activity')
                             .map(b => {
                                 const totalPrice = b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0);
@@ -521,7 +632,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                                 );
                             })
                         }
-                        {filteredBookings.filter(b => b.itemType === 'activity').length === 0 && (
+                        {bookingsForTables.filter(b => b.itemType === 'activity').length === 0 && (
                             <tr>
                                 <td colSpan={8} className="text-center p-4 text-slate-500">
                                     No activity bookings for this period.
@@ -529,16 +640,25 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                             </tr>
                         )}
                     </tbody>
+                    <tfoot>
+                        <tr className="font-bold bg-slate-100 text-slate-800">
+                            <td colSpan="3" className="px-6 py-3 text-right">Total:</td>
+                            <td className="px-6 py-3">{currencyFormat(activityTotals.totalPrice)}</td>
+                            <td className="px-6 py-3 text-red-700">{currencyFormat(activityTotals.totalCost)}</td>
+                            <td className="px-6 py-3 text-orange-700">{currencyFormat(activityTotals.totalCommission)}</td>
+                            <td className="px-6 py-3 text-green-700">{currencyFormat(activityTotals.totalProfit)}</td>
+                            <td className="px-6 py-3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
-            {/* Other Tables... (Boat Company Payments, Platform Payments, External Sales, Staff Performance, All Bookings) */}
             <div className="bg-white rounded-lg shadow-md overflow-x-auto"><h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Boat Company Payments Due - {reportPeriodTitle}</h3>
                 <table className="w-full text-sm">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Company Name</th><th className="px-6 py-3">Amount to Pay</th></tr></thead>
                     <tbody>
                         {Object.entries(reportData.companyDebts).map(([c, a]) => <tr key={c} className="bg-white border-b"><td className="px-6 py-4 font-medium">{c}</td><td className="px-6 py-4 font-bold text-red-600">{currencyFormat(a as number)}</td></tr>)}
-                        {Object.keys(reportData.companyDebts).length === 0 && (<tr><td colSpan={2} className="text-center p-4">No payments due.</td></tr>)}
+                        {Object.keys(reportData.companyDebts).length === 0 && (<tr><td colSpan={2} className="text-center p-4">No payments due for this period.</td></tr>)}
                     </tbody>
                 </table>
             </div>
@@ -559,7 +679,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredBookings
+                        {bookingsForTables
                             .filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat')
                             .map(b => {
                                 const totalPrice = b.customerPrice - (b.discount || 0);
@@ -581,7 +701,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                                 );
                             })
                         }
-                        {filteredBookings.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat').length === 0 && (
+                        {bookingsForTables.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat').length === 0 && (
                             <tr>
                                 <td colSpan={8} className="text-center p-4 text-slate-500">
                                     No boat ticket bookings for this period.
@@ -589,6 +709,16 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                             </tr>
                         )}
                     </tbody>
+                    <tfoot>
+                        <tr className="font-bold bg-slate-100 text-slate-800">
+                            <td colSpan="3" className="px-6 py-3 text-right">Total:</td>
+                            <td className="px-6 py-3">{currencyFormat(boatTotals.totalPrice)}</td>
+                            <td className="px-6 py-3 text-red-700">{currencyFormat(boatTotals.totalCost)}</td>
+                            <td className="px-6 py-3 text-orange-700">{currencyFormat(boatTotals.totalCommission)}</td>
+                            <td className="px-6 py-3 text-green-700">{currencyFormat(boatTotals.totalProfit)}</td>
+                            <td className="px-6 py-3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
@@ -597,9 +727,16 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                      <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Date</th><th className="px-6 py-3">Platform</th><th className="px-6 py-3">Amount</th><th className="px-6 py-3">Reference</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
-                        {filteredPlatformPayments.map(p => <tr key={p.id} className="border-b"><td className="px-6 py-4">{p.date}</td><td className="px-6 py-4 font-medium">{p.platform}</td><td className="px-6 py-4">{currencyFormat(p.amount)}</td><td className="px-6 py-4">{p.bookingReference||'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenPlatformPaymentModal(p)}><EditIcon /></button><button onClick={() => onDeletePlatformPayment(p.id)}><TrashIcon /></button></div></td></tr>)}
-                        {filteredPlatformPayments.length === 0 && (<tr><td colSpan={5} className="text-center p-4">No platform payments.</td></tr>)}
+                        {platformPaymentsForTables.map(p => <tr key={p.id} className="border-b"><td className="px-6 py-4">{p.date}</td><td className="px-6 py-4 font-medium">{p.platform}</td><td className="px-6 py-4">{currencyFormat(p.amount)}</td><td className="px-6 py-4">{p.bookingReference||'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenPlatformPaymentModal(p)}><EditIcon /></button><button onClick={() => onDeletePlatformPayment(p.id)}><TrashIcon /></button></div></td></tr>)}
+                        {platformPaymentsForTables.length === 0 && (<tr><td colSpan={5} className="text-center p-4">No platform payments for this period.</td></tr>)}
                      </tbody>
+                     <tfoot>
+                         <tr className="font-bold bg-slate-100 text-slate-800">
+                             <td colSpan="2" className="px-6 py-3 text-right">Total:</td>
+                             <td className="px-6 py-3">{currencyFormat(platformPaymentsTotal)}</td>
+                             <td colSpan="2"></td>
+                         </tr>
+                     </tfoot>
                 </table>
             </div>
 
@@ -608,9 +745,16 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                      <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Date</th><th className="px-6 py-3">Amount</th><th className="px-6 py-3">Description</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
-                        {filteredExternalSales.map(s => <tr key={s.id} className="border-b"><td className="px-6 py-4">{s.date}</td><td className="px-6 py-4">{currencyFormat(s.amount)}</td><td className="px-6 py-4">{s.description||'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenExternalSaleModal(s)}><EditIcon /></button><button onClick={() => onDeleteExternalSale(s.id)}><TrashIcon /></button></div></td></tr>)}
-                        {filteredExternalSales.length === 0 && (<tr><td colSpan={4} className="text-center p-4">No external sales.</td></tr>)}
+                        {externalSalesForTables.map(s => <tr key={s.id} className="border-b"><td className="px-6 py-4">{s.date}</td><td className="px-6 py-4">{currencyFormat(s.amount)}</td><td className="px-6 py-4">{s.description||'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenExternalSaleModal(s)}><EditIcon /></button><button onClick={() => onDeleteExternalSale(s.id)}><TrashIcon /></button></div></td></tr>)}
+                        {externalSalesForTables.length === 0 && (<tr><td colSpan={4} className="text-center p-4">No external sales for this period.</td></tr>)}
                      </tbody>
+                     <tfoot>
+                         <tr className="font-bold bg-slate-100 text-slate-800">
+                             <td className="px-6 py-3 text-right">Total:</td>
+                             <td className="px-6 py-3">{currencyFormat(externalSalesTotal)}</td>
+                             <td colSpan="2"></td>
+                         </tr>
+                     </tfoot>
                 </table>
             </div>
             
@@ -618,6 +762,14 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Staff Name</th><th className="px-6 py-3">Bookings</th><th className="px-6 py-3">Revenue Generated</th><th className="px-6 py-3">Commission Earned</th></tr></thead>
                     <tbody>{reportData.staffPerformance.map(p => <tr key={p.staffId} className="border-b"><td className="px-6 py-4 font-medium">{p.staffName}</td><td className="px-6 py-4">{p.bookingsCount}</td><td className="px-6 py-4">{currencyFormat(p.totalRevenue)}</td><td className="px-6 py-4 font-semibold text-green-600">{currencyFormat(p.totalCommission)}</td></tr>)}</tbody>
+                    <tfoot>
+                        <tr className="font-bold bg-slate-100 text-slate-800">
+                            <td className="px-6 py-3 text-right">Total:</td>
+                            <td className="px-6 py-3">{staffPerformanceTotals.totalBookings}</td>
+                            <td className="px-6 py-3">{currencyFormat(staffPerformanceTotals.totalRevenue)}</td>
+                            <td className="px-6 py-3 text-green-700">{currencyFormat(staffPerformanceTotals.totalCommission)}</td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
@@ -625,8 +777,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 <table className="w-full text-sm">
                      <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Item</th><th className="px-6 py-3">Staff</th><th className="px-6 py-3">Price</th><th className="px-6 py-3">Hostel C.</th><th className="px-6 py-3">Employee C.</th><th className="px-6 py-3">Receipt</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
-                        {filteredBookings.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.hostelCommission ? currencyFormat(b.hostelCommission) : 'N/A'}</td><td className="px-6 py-4">{b.employeeCommission ? currencyFormat(b.employeeCommission) : 'N/A'}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenEditBookingModal(b)} className="text-slate-500 hover:text-blue-600"><EditIcon/></button><button onClick={() => handleDeleteBookingPrompt(b)} className="text-slate-500 hover:text-red-600"><TrashIcon/></button></div></td></tr>)}
-                        {filteredBookings.length === 0 && (<tr><td colSpan={9} className="text-center p-4">No bookings.</td></tr>)}
+                        {allBookingsForTable.map(b => <tr key={b.id} className="border-b"><td className="px-6 py-4 font-mono text-xs">{b.id.slice(-6)}</td><td className="px-6 py-4">{b.bookingDate}</td><td className="px-6 py-4 font-medium">{b.itemName}</td><td className="px-6 py-4">{staffMap.get(b.staffId)||'N/A'}</td><td className="px-6 py-4">{currencyFormat(b.customerPrice + (b.extrasTotal||0) - (b.discount||0))}</td><td className="px-6 py-4">{b.hostelCommission ? currencyFormat(b.hostelCommission) : 'N/A'}</td><td className="px-6 py-4">{b.employeeCommission ? currencyFormat(b.employeeCommission) : 'N/A'}</td><td className="px-6 py-4">{b.receiptImage ? <button onClick={() => setViewingReceipt(b.receiptImage)}><EyeIcon/></button>:'N/A'}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenEditBookingModal(b)} className="text-slate-500 hover:text-blue-600"><EditIcon/></button><button onClick={() => handleDeleteBookingPrompt(b)} className="text-slate-500 hover:text-red-600"><TrashIcon/></button></div></td></tr>)}
+                        {allBookingsForTable.length === 0 && (<tr><td colSpan={9} className="text-center p-4">No bookings for this period.</td></tr>)}
                      </tbody>
                 </table>
             </div>
@@ -652,8 +804,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                     extras={extras}
                     onSave={onUpdateBooking}
                     onClose={handleCloseModals}
-                        onDelete={(b) => onDeleteBooking(b.id)}   // ✅ FIXED
-
+                    onDelete={handleDeleteBookingPrompt}
                 />}
             </Modal>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>

@@ -576,6 +576,7 @@ const App: React.FC = () => {
                     platformPayments={platformPayments}
                     utilityRecords={utilityRecords}
                     salaryAdvances={salaryAdvances}
+                    absences={absences}
                     walkInGuests={walkInGuests}
                     accommodationBookings={accommodationBookings}
                     rooms={rooms}

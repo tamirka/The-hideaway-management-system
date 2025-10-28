@@ -140,9 +140,12 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
 }
 
 // Fix: Refactored component to a standard function declaration to resolve JSX typing issues with generics.
+// Fix: Added explicit JSX.Element return type to help TypeScript correctly identify this as a React component,
+// which resolves an error where the special 'key' prop was being incorrectly passed into the component's props.
+// FIX: Reverted change from React.JSX.Element back to JSX.Element, which was an incorrect fix attempt and was not resolving the 'key' prop error.
 function EditablePriceItem<T extends { id: string; name: string; price: number }>(
   props: EditablePriceItemProps<T>
-) {
+): JSX.Element {
   const {
     item,
     onSave,

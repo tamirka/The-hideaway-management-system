@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, TaxiBoatOption, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Room, PaymentType } from '../../types';
+import type { Activity, SpeedBoatTrip, Staff, Booking, Extra, TaxiBoatOption, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Room, PaymentType, Absence } from '../../types';
 import { Role } from '../../types';
 import ToursActivities from './ToursActivities';
 import BoatTickets from './BoatTickets';
@@ -48,6 +48,7 @@ interface ActivitiesManagementProps {
   platformPayments: PlatformPayment[];
   utilityRecords: UtilityRecord[];
   salaryAdvances: SalaryAdvance[];
+  absences: Absence[];
   walkInGuests: WalkInGuest[];
   accommodationBookings: AccommodationBooking[];
   rooms: Room[];
@@ -163,6 +164,7 @@ export const ActivitiesManagement: React.FC<ActivitiesManagementProps> = (props)
                         platformPayments={props.platformPayments}
                         utilityRecords={props.utilityRecords}
                         salaryAdvances={props.salaryAdvances}
+                        absences={props.absences}
                         walkInGuests={props.walkInGuests}
                         accommodationBookings={props.accommodationBookings}
                         staff={props.staff}
