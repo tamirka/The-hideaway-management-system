@@ -471,7 +471,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         const totalSalaryAdvances = filteredSalaryAdvancesForSummary.reduce((sum, a) => sum + a.amount, 0);
         const remainingSalaries = netSalaryExpense - totalSalaryAdvances;
         const totalExpenses = totalUtilitiesCost + totalItemCosts + netSalaryExpense + totalEmployeeCommissions;
-        const remainingExpensesToBePaid = totalExpenses - totalSalaryAdvances;
+        const expensesWithoutSalary = totalUtilitiesCost + totalItemCosts + totalEmployeeCommissions;
         const netProfit = totalRevenue - totalExpenses;
 
         const staffPerformance = staff.map(s => {
@@ -492,7 +492,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 return acc;
             }, {});
     
-        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, remainingExpensesToBePaid, netProfit, staffPerformance, companyDebts, totalAbsenceDeductions };
+        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, expensesWithoutSalary, netProfit, staffPerformance, companyDebts, totalAbsenceDeductions };
     }, [filteredBookingsForSummary, filteredExternalSalesForSummary, filteredPlatformPaymentsForSummary, filteredUtilityRecordsForSummary, filteredSalaryAdvancesForSummary, filteredWalkInGuestsForSummary, filteredAccommodationBookingsForSummary, staff, speedBoatTrips, reportGranularity, absences, currentFilter, bookingsForTables]);
     
     // Memos for table totals
@@ -594,7 +594,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
                             <li className="flex justify-between font-bold text-blue-700 mt-2 pt-2 border-t border-dashed">
                                 <span> Expenses without salary:</span>
-                                <span>{currencyFormat(reportData.remainingExpensesToBePaid)}</span>
+                                <span>{currencyFormat(reportData.expensesWithoutSalary)}</span>
                             </li>
                         </ul>
                     </div>

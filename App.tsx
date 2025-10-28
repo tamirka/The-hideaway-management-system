@@ -1,3 +1,4 @@
+
 // Fix: Implement the main App component to manage state and render child components.
 import React, { useState, useEffect, useMemo } from 'react';
 import { StaffManagement } from './components/StaffManagement';
@@ -622,17 +623,20 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
                  <h1 className="text-xl font-bold text-slate-800">Facility Management Dashboard</h1>
-                 <div className="flex items-center space-x-2">
-                    <label htmlFor="role-switcher" className="text-sm font-medium text-slate-600">Viewing as:</label>
-                    <select
-                        id="role-switcher"
-                        value={currentUserRole}
-                        onChange={(e) => setCurrentUserRole(e.target.value as Role)}
-                        className="rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
-                    >
-                        <option value={Role.Admin}>Admin</option>
-                        <option value={Role.Staff}>Staff</option>
-                    </select>
+                 <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                        <label htmlFor="role-switcher" className="text-sm font-medium text-slate-600">Viewing as:</label>
+                        <select
+                            id="role-switcher"
+                            value={currentUserRole}
+                            onChange={(e) => setCurrentUserRole(e.target.value as Role)}
+                            className="rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
+                        >
+                            <option value={Role.Admin}>Admin</option>
+                            <option value={Role.Staff}>Staff</option>
+                        </select>
+                    </div>
+                    <div id="google_translate_element"></div>
                  </div>
             </div>
             <nav className="flex space-x-2 sm:space-x-4 overflow-x-auto -mb-px" aria-label="Tabs">
