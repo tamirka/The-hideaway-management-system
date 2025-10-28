@@ -143,9 +143,10 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
 // Fix: Added explicit JSX.Element return type to help TypeScript correctly identify this as a React component,
 // which resolves an error where the special 'key' prop was being incorrectly passed into the component's props.
 // FIX: Reverted change from React.JSX.Element back to JSX.Element, which was an incorrect fix attempt and was not resolving the 'key' prop error.
+// Fix: Change return type from JSX.Element to React.ReactElement to fix "Cannot find namespace 'JSX'" error.
 function EditablePriceItem<T extends { id: string; name: string; price: number }>(
   props: EditablePriceItemProps<T>
-): JSX.Element {
+): React.ReactElement {
   const {
     item,
     onSave,

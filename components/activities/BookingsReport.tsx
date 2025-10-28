@@ -160,7 +160,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         onDelete: (booking: Booking) => void;
     }
     const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose, onDelete }) => {
-        const [formData, setFormData] = useState<Booking>(booking);
+        // Fix: Use `any` for formData state to allow strings from form inputs for fields that are numbers in the Booking type. This aligns with the conversion logic in handleSave.
+        const [formData, setFormData] = useState<any>(booking);
 
         const availableItems = useMemo(() => {
             switch (booking.itemType) {
@@ -177,7 +178,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             }
         }, [booking.itemType, activities, speedBoatTrips, taxiBoatOptions, extras]);
 
-        const handleFormChange = (field: keyof Booking, value: any) => {
+        // Fix: Changed `field` type from `keyof Booking` to `string` to prevent TypeScript errors when updating state with string values for number fields.
+        const handleFormChange = (field: string, value: any) => {
             setFormData(prev => ({ ...prev, [field]: value }));
         };
         
@@ -393,8 +395,12 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const filteredAccommodationBookingsForSummary = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
 
     // Memos for TABLES (use daily filter if available)
-    const filterForTables = (items: Array<{ date?: string; bookingDate?: string; checkInDate?: string }>) => {
-        const key = items[0] ? ('bookingDate' in items[0] ? 'bookingDate' : ('checkInDate' in items[0] ? 'checkInDate' : 'date')) : 'date';
+    // Fix: Made filterForTables generic to preserve the type of the array being filtered. This resolves numerous subsequent property access errors.
+    const filterForTables = <T extends { date?: string; bookingDate?: string; checkInDate?: string }>(items: T[]): T[] => {
+        if (!items || items.length === 0) {
+            return [];
+        }
+        const key = 'bookingDate' in items[0] ? 'bookingDate' : ('checkInDate' in items[0] ? 'checkInDate' : 'date');
         if (selectedDay) {
             return items.filter(item => (item as any)[key] === selectedDay);
         }
@@ -595,7 +601,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             </div>
 
             <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Activity Financial Details - {reportPeriodTitle}</h3>
+                <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Activity Trip Financial Details - {reportPeriodTitle}</h3>
                 <table className="w-full text-sm">
                     <thead className="text-xs text-slate-700 uppercase bg-slate-50">
                         <tr>

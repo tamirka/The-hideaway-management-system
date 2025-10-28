@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Staff, Shift, Task, Absence, SalaryAdvance } from '../types';
+import type { Staff, Shift, Task, Absence, SalaryAdvance, Booking } from '../types';
 // Fix: Import Role enum to be used in the StaffForm.
 import { TaskStatus, Role } from '../types';
 import Modal from './Modal';
@@ -286,6 +286,7 @@ interface StaffManagementProps {
   tasks: Task[];
   absences: Absence[];
   salaryAdvances: SalaryAdvance[];
+  bookings: Booking[];
   onAddStaff: (newStaff: Omit<Staff, 'id'>) => void;
   onUpdateStaff: (updatedStaff: Staff) => void;
   onDeleteStaff: (staffId: string) => void;
@@ -301,7 +302,7 @@ interface StaffManagementProps {
 }
 
 export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
-    const { staff, shifts, tasks, absences, salaryAdvances, onAddStaff, onUpdateStaff, onDeleteStaff, onAddTask, onUpdateTask, onDeleteTask, onAddAbsence, onUpdateAbsence, onDeleteAbsence, onAddSalaryAdvance, onUpdateSalaryAdvance, onDeleteSalaryAdvance } = props;
+    const { staff, shifts, tasks, absences, salaryAdvances, bookings, onAddStaff, onUpdateStaff, onDeleteStaff, onAddTask, onUpdateTask, onDeleteTask, onAddAbsence, onUpdateAbsence, onDeleteAbsence, onAddSalaryAdvance, onUpdateSalaryAdvance, onDeleteSalaryAdvance } = props;
     const [activeTab, setActiveTab] = useState<StaffSubView>('employees');
     
     // State for modals
@@ -325,6 +326,17 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
         });
         return advancesMap;
     }, [salaryAdvances, selectedMonth]);
+
+    const monthlyCommissionsByStaff = useMemo(() => {
+        const commissionsMap = new Map<string, number>();
+        const monthlyBookings = bookings.filter(b => b.bookingDate.startsWith(selectedMonth));
+        monthlyBookings.forEach(booking => {
+            if (booking.employeeCommission) {
+                commissionsMap.set(booking.staffId, (commissionsMap.get(booking.staffId) || 0) + booking.employeeCommission);
+            }
+        });
+        return commissionsMap;
+    }, [bookings, selectedMonth]);
 
     const monthlyAbsenceDeductionsByStaff = useMemo(() => {
         const deductionsMap = new Map<string, number>();
@@ -470,7 +482,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                         {staff.map(s => {
                             const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
                             const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                            const netMonthlySalary = s.salary - totalAdvances - totalDeductions;
+                            const totalCommissions = monthlyCommissionsByStaff.get(s.id) || 0;
+                            const netMonthlySalary = s.salary + totalCommissions - totalAdvances - totalDeductions;
                             return (
                                 <div key={s.id} className="bg-white rounded-lg shadow-md p-4 space-y-3">
                                     <div className="flex justify-between items-start">
@@ -487,6 +500,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                          <p><span className="font-semibold">ID:</span> {s.employeeId}</p>
                                          <p><span className="font-semibold">Contact:</span> {s.contact}</p>
                                          <p><span className="font-semibold">Salary (Monthly):</span> ฿{s.salary.toLocaleString()}</p>
+                                         <p><span className="font-semibold text-sky-600">Monthly Commissions:</span> ฿{totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                          <p><span className="font-semibold text-red-600">Monthly Advances:</span> ฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                          <p><span className="font-semibold text-orange-600">Absence Deductions:</span> ฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                          <p className="font-bold text-green-600 pt-1 border-t mt-1"><span className="font-semibold">Net Monthly Salary:</span> ฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -505,6 +519,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Employee ID</th>
                                     <th className="px-6 py-3">Salary (Monthly)</th>
+                                    <th className="px-6 py-3">Monthly Commissions</th>
                                     <th className="px-6 py-3">Monthly Advances</th>
                                     <th className="px-6 py-3">Absence Deductions</th>
                                     <th className="px-6 py-3">Net Monthly Salary</th>
@@ -515,13 +530,15 @@ export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
                                 {staff.map(s => {
                                     const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
                                     const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                                    const netMonthlySalary = s.salary - totalAdvances - totalDeductions;
+                                    const totalCommissions = monthlyCommissionsByStaff.get(s.id) || 0;
+                                    const netMonthlySalary = s.salary + totalCommissions - totalAdvances - totalDeductions;
                                     return (
                                         <tr key={s.id} className="bg-white border-b hover:bg-slate-50">
                                             <td className="px-6 py-4 font-medium text-slate-900">{s.name}</td>
                                             <td className="px-6 py-4">{s.role}</td>
                                             <td className="px-6 py-4">{s.employeeId}</td>
                                             <td className="px-6 py-4">฿{s.salary.toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-sky-600 font-medium">฿{totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-red-600 font-medium">฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-orange-600 font-medium">฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                             <td className="px-6 py-4 text-green-600 font-bold">฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
