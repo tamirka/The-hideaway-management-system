@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { SpeedBoatTrip, Staff, TaxiBoatOption, PaymentType } from '../../types';
+import type { SpeedBoatTrip, Staff, TaxiBoatOption, PaymentType, Booking } from '../../types';
 import { Role } from '../../types';
 import Modal from '../Modal';
 import { PlusIcon, EditIcon, TrashIcon } from '../../constants';
@@ -190,6 +190,7 @@ interface BoatTicketsProps {
     taxiBoatOptions: TaxiBoatOption[];
     staff: Staff[];
     paymentTypes: PaymentType[];
+    bookings: Booking[];
     onBookSpeedBoat: (tripId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
     onBookTaxiBoat: (taxiOptionId: string, staffId: string, numberOfPeople: number, paymentMethod: string, bookingDate: string, receiptImage?: string, employeeCommission?: number) => void;
     onAddSpeedBoatTrip: (newTrip: Omit<SpeedBoatTrip, 'id'>) => void;
@@ -201,7 +202,7 @@ interface BoatTicketsProps {
     currentUserRole: Role;
 }
 
-const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptions, staff, paymentTypes, onBookSpeedBoat, onBookTaxiBoat, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onAddTaxiBoatOption, onUpdateTaxiBoatOption, onDeleteTaxiBoatOption, currentUserRole }) => {
+const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptions, staff, paymentTypes, bookings, onBookSpeedBoat, onBookTaxiBoat, onAddSpeedBoatTrip, onUpdateSpeedBoatTrip, onDeleteSpeedBoatTrip, onAddTaxiBoatOption, onUpdateTaxiBoatOption, onDeleteTaxiBoatOption, currentUserRole }) => {
     // Modal states
     const [isSpeedBoatModalOpen, setIsSpeedBoatModalOpen] = useState(false);
     const [selectedTrip, setSelectedTrip] = useState<SpeedBoatTrip | null>(null);
@@ -228,6 +229,7 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     const [bookingDate, setBookingDate] = useState(new Date().toISOString().split('T')[0]);
     const [paymentDetails, setPaymentDetails] = useState<{ method: string; receiptImage?: string }>(initialPaymentState);
     const [employeeCommission, setEmployeeCommission] = useState('');
+    const [selectedReportMonth, setSelectedReportMonth] = useState<string>(new Date().toISOString().slice(0, 7));
 
 
     useEffect(() => {
@@ -252,6 +254,16 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
 
     const currencyFormat = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+    const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
+
+    const filteredBoatBookings = useMemo(() => {
+        return bookings.filter(b => 
+            (b.itemType === 'speedboat' || b.itemType === 'taxi_boat') && 
+            b.bookingDate.startsWith(selectedReportMonth)
+        );
+    }, [bookings, selectedReportMonth]);
+
+
     const handleCloseModals = () => {
         setIsSpeedBoatModalOpen(false);
         setIsTaxiModalOpen(false);
@@ -267,15 +279,15 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     };
     
     const groupedSpeedBoatTrips = useMemo(() => {
-        // Fix: Correctly type the accumulator in the reduce function to ensure type safety.
-        return speedBoatTrips.reduce((acc: Record<string, SpeedBoatTrip[]>, trip) => {
+        // Fix: Correctly type the accumulator by using a generic on the reduce function to ensure type safety.
+        return speedBoatTrips.reduce<Record<string, SpeedBoatTrip[]>>((acc, trip) => {
             const { route } = trip;
             if (!acc[route]) {
                 acc[route] = [];
             }
             acc[route].push(trip);
             return acc;
-        }, {} as Record<string, SpeedBoatTrip[]>);
+        }, {});
     }, [speedBoatTrips]);
 
     const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {
@@ -377,6 +389,68 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
                     </div>
                 </div>
             </div>
+
+            {currentUserRole === Role.Admin && (
+                <div className="mt-8 bg-white rounded-lg shadow-md overflow-x-auto">
+                    <div className="p-4 border-b">
+                        <h3 className="text-lg font-semibold text-slate-800">Boat Ticket Financial Details</h3>
+                        <div className="mt-2">
+                            <label htmlFor="month-filter-boat-report" className="text-sm font-medium text-slate-600">Month:</label>
+                            <input 
+                                type="month" 
+                                id="month-filter-boat-report"
+                                value={selectedReportMonth}
+                                onChange={e => setSelectedReportMonth(e.target.value)}
+                                className="ml-2 rounded-md border-slate-300 shadow-sm text-sm py-1"
+                            />
+                        </div>
+                    </div>
+                    <table className="w-full text-sm">
+                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                            <tr>
+                                <th className="px-6 py-3">Date</th>
+                                <th className="px-6 py-3">Route</th>
+                                <th className="px-6 py-3">People</th>
+                                <th className="px-6 py-3">Total Price</th>
+                                <th className="px-6 py-3">Company Cost</th>
+                                <th className="px-6 py-3">Employee Comm.</th>
+                                <th className="px-6 py-3">Hostel Net Profit</th>
+                                <th className="px-6 py-3">Staff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredBoatBookings
+                                .map(b => {
+                                    const totalPrice = b.customerPrice - (b.discount || 0);
+                                    const companyCost = b.itemCost || 0;
+                                    const employeeCommission = b.employeeCommission || 0;
+                                    const hostelNetProfit = totalPrice - companyCost - employeeCommission;
+
+                                    return (
+                                        <tr key={b.id} className="border-b hover:bg-slate-50">
+                                            <td className="px-6 py-4">{b.bookingDate}</td>
+                                            <td className="px-6 py-4 font-medium text-slate-800">{b.itemName}</td>
+                                            <td className="px-6 py-4 text-center">{b.numberOfPeople}</td>
+                                            <td className="px-6 py-4">{currencyFormat(totalPrice)}</td>
+                                            <td className="px-6 py-4 text-red-600">{currencyFormat(companyCost)}</td>
+                                            <td className="px-6 py-4 text-orange-600">{currencyFormat(employeeCommission)}</td>
+                                            <td className="px-6 py-4 font-bold text-green-600">{currencyFormat(hostelNetProfit)}</td>
+                                            <td className="px-6 py-4 text-slate-500">{staffMap.get(b.staffId) || 'N/A'}</td>
+                                        </tr>
+                                    );
+                                })
+                            }
+                            {filteredBoatBookings.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="text-center p-4 text-slate-500">
+                                        No boat ticket bookings for this period.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
             
             <Modal isOpen={isSpeedBoatModalOpen} onClose={handleCloseModals} title={`Book: ${selectedRoute}`}>
                  <div className="space-y-6">

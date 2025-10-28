@@ -16,7 +16,7 @@ const ActivityForm: React.FC<ActivityFormProps> = ({ onSave, onClose }) => {
     };
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...formData, price: Number(formData.price) });
+        onSave({ ...formData, price: Number(formData.price), type: 'Internal' });
         onClose();
     };
     return (
