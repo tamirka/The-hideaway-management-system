@@ -1,5 +1,4 @@
-
-
+// Fix: Add missing React and hooks import to resolve multiple 'Cannot find name' errors.
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Booking, ExternalSale, PlatformPayment, UtilityRecord, SalaryAdvance, WalkInGuest, AccommodationBooking, Staff, SpeedBoatTrip, Room, PaymentType, Activity, TaxiBoatOption, Extra } from '../../types';
 import Modal from '../Modal';
@@ -387,9 +386,11 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         const totalSalaries = staff.reduce((sum, s) => sum + s.salary, 0);
         const totalCalculatedSalaries = reportGranularity === 'yearly' ? totalSalaries * 12 : totalSalaries;
         const totalSalaryAdvances = filteredSalaryAdvances.reduce((sum, a) => sum + a.amount, 0);
-        const totalExpenses = totalUtilitiesCost + totalItemCosts + totalCalculatedSalaries + totalSalaryAdvances + totalEmployeeCommissions;
+        const remainingSalaries = totalCalculatedSalaries - totalSalaryAdvances;
+        const totalExpenses = totalUtilitiesCost + totalItemCosts + totalCalculatedSalaries;
+        const remainingExpensesToBePaid = totalExpenses - totalSalaryAdvances;
 
-        const netProfit = totalRevenue - totalExpenses;
+        const netProfit = totalRevenue - totalExpenses - totalEmployeeCommissions;
 
         const staffPerformance = staff.map(s => {
             const staffBookings = filteredBookings.filter(b => b.staffId === s.id);
@@ -410,7 +411,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 return acc;
             }, {} as Record<string, number>);
     
-        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, totalEmployeeCommissions, netProfit, staffPerformance, companyDebts };
+        return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, remainingExpensesToBePaid, netProfit, staffPerformance, companyDebts };
     }, [filteredBookings, filteredExternalSales, filteredPlatformPayments, filteredUtilityRecords, filteredSalaryAdvances, filteredWalkInGuests, filteredAccommodationBookings, staff, speedBoatTrips, reportGranularity]);
     
 
@@ -458,11 +459,25 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                     <div className="bg-white p-4"><h4 className="font-semibold text-red-600 mb-2">Expense Streams</h4>
                         <ul className="space-y-1 text-sm">
                             <li className="flex justify-between"><span>Staff Salaries ({reportGranularity === 'yearly' ? 'Annual' : 'Monthly'} Est.):</span> <span className="font-medium">{currencyFormat(reportData.totalMonthlySalaries)}</span></li>
+                            <li className="flex justify-between pl-4 text-slate-500">
+                                <span>↳ Less: Salary Advances Paid:</span>
+                                <span className="font-medium">({currencyFormat(reportData.totalSalaryAdvances)})</span>
+                            </li>
+                            <li className="flex justify-between pl-4 text-slate-600 font-semibold">
+                                <span>↳ Remaining Salaries Payable:</span>
+                                <span className="font-medium">{currencyFormat(reportData.remainingSalaries)}</span>
+                            </li>
                             <li className="flex justify-between"><span>Utility Bills:</span> <span className="font-medium">{currencyFormat(reportData.totalUtilitiesCost)}</span></li>
                             <li className="flex justify-between"><span>Activity Item Costs:</span> <span className="font-medium">{currencyFormat(reportData.totalItemCosts)}</span></li>
-                            <li className="flex justify-between"><span>Salary Advances:</span> <span className="font-medium">{currencyFormat(reportData.totalSalaryAdvances)}</span></li>
-                            <li className="flex justify-between"><span>Employee Commissions:</span> <span className="font-medium">{currencyFormat(reportData.totalEmployeeCommissions)}</span></li>
+                            <li className="flex justify-between pl-4 text-slate-500">
+                                <span>↳ Less: Employee Commissions Paid:</span>
+                                <span className="font-medium">({currencyFormat(reportData.totalEmployeeCommissions)})</span>
+                            </li>
                             <li className="flex justify-between font-bold border-t mt-2 pt-2"><span>Total Expenses:</span> <span>{currencyFormat(reportData.totalExpenses)}</span></li>
+                            <li className="flex justify-between font-bold text-blue-700 mt-2 pt-2 border-t border-dashed">
+                                <span>Remaining Expenses to be Paid:</span>
+                                <span>{currencyFormat(reportData.remainingExpensesToBePaid)}</span>
+                            </li>
                         </ul>
                     </div>
                 </div>
