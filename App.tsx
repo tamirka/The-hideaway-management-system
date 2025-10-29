@@ -43,12 +43,20 @@ const App: React.FC = () => {
     if (user) {
       setProfileLoading(true);
       api.getProfileForUser(user.id)
-        .then(profile => {
+        .then(async (profile) => {
           if (profile) {
             setCurrentUserRole(profile.role);
           } else {
-            console.error("No profile found for logged in user. Signing out.");
-            api.signOut();
+            // No profile exists, likely a new user. Let's create one via an Edge Function.
+            console.log("No profile found for user, creating one.");
+            try {
+              const newProfile = await api.createProfileForUser(user);
+              setCurrentUserRole(newProfile.role);
+            } catch (creationError) {
+              console.error("Failed to create profile for new user:", creationError);
+              // Sign out if profile creation fails to prevent being in a broken state.
+              api.signOut();
+            }
           }
         })
         .catch(error => {

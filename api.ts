@@ -1,4 +1,5 @@
 import { supabase } from './src/lib/supabaseClient';
+import type { User } from '@supabase/supabase-js';
 import type { 
     Activity, 
     Booking, 
@@ -44,6 +45,25 @@ export const getProfileForUser = async (userId: string): Promise<Profile | null>
     }
     return data;
 }
+
+// This function should be called when a new user logs in for the first time and has no profile.
+// It invokes a Supabase Edge Function to create the profile server-side.
+export const createProfileForUser = async (user: User): Promise<Profile> => {
+    // We assume an Edge Function named 'create-profile' exists.
+    const { data, error } = await supabase.functions.invoke('create-profile', {
+        body: { user },
+    });
+    
+    if (error) {
+        handleSupabaseError(error, 'createProfileForUser (invoking edge function)');
+    }
+
+    if (!data) {
+        throw new Error('Edge function did not return a profile.');
+    }
+
+    return data;
+};
 
 export const signOut = async () => {
     const { error } = await supabase.auth.signOut();

@@ -24,7 +24,8 @@ interface ExternalSaleFormProps {
 const ExternalSaleForm: React.FC<ExternalSaleFormProps> = ({ onSave, onClose, initialData }) => {
     const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
     // Fix: Safely convert optional number to string for form state to prevent runtime errors and handle 0 correctly.
-    const [amount, setAmount] = useState(initialData?.amount?.toString() ?? '');
+    // Fix: Changed `initialData?.amount?.toString() ?? ''` to `String(initialData?.amount ?? '')` to handle null/undefined values safely.
+    const [amount, setAmount] = useState(String(initialData?.amount ?? ''));
     const [description, setDescription] = useState(initialData?.description || '');
     
     const handleSubmit = (e: React.FormEvent) => {
@@ -69,7 +70,8 @@ const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClo
     const [platform, setPlatform] = useState(initialPlatform);
     const [otherPlatform, setOtherPlatform] = useState(initialData?.platform && !PLATFORMS.includes(initialData.platform) ? initialData.platform : '');
     // Fix: Safely convert optional number to string for form state to prevent runtime errors and handle 0 correctly.
-    const [amount, setAmount] = useState(initialData?.amount?.toString() ?? '');
+    // Fix: Changed `initialData?.amount?.toString() ?? ''` to `String(initialData?.amount ?? '')` to handle null/undefined values safely.
+    const [amount, setAmount] = useState(String(initialData?.amount ?? ''));
     const [bookingReference, setBookingReference] = useState(initialData?.bookingReference || '');
     
     const handleSubmit = (e: React.FormEvent) => {
@@ -166,19 +168,20 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     }
     const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose, onDelete }) => {
         // Fix: Initialize formData with string values for numeric fields to ensure type consistency in the form state.
+        // Fix: Changed `.toString()` to `String()` for safer conversion of potentially null/undefined numeric values to strings for form state.
         const [formData, setFormData] = useState<any>({
             ...booking,
             // Fix: Changed String() constructor to .toString() to fix type error.
-            customerPrice: booking.customerPrice.toString(),
-            numberOfPeople: booking.numberOfPeople.toString(),
+            customerPrice: String(booking.customerPrice),
+            numberOfPeople: String(booking.numberOfPeople),
             // Fix: Changed String() constructor to .toString() to fix type error.
-            discount: booking.discount?.toString() ?? '',
-            extrasTotal: booking.extrasTotal?.toString() ?? '',
-            fuelCost: booking.fuelCost?.toString() ?? '',
-            captainCost: booking.captainCost?.toString() ?? '',
-            itemCost: booking.itemCost?.toString() ?? '',
-            employeeCommission: booking.employeeCommission?.toString() ?? '',
-            hostelCommission: booking.hostelCommission?.toString() ?? '',
+            discount: String(booking.discount ?? ''),
+            extrasTotal: String(booking.extrasTotal ?? ''),
+            fuelCost: String(booking.fuelCost ?? ''),
+            captainCost: String(booking.captainCost ?? ''),
+            itemCost: String(booking.itemCost ?? ''),
+            employeeCommission: String(booking.employeeCommission ?? ''),
+            hostelCommission: String(booking.hostelCommission ?? ''),
         });
 
         const availableItems = useMemo(() => {
@@ -223,10 +226,10 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 ...prev,
                 itemName: 'route' in selectedItem ? `${(selectedItem as SpeedBoatTrip).route} (${(selectedItem as SpeedBoatTrip).company})` : selectedItem.name,
                 // Fix: Consistently store numeric form fields as strings to avoid type errors.
-                // Fix: Changed String() constructor to .toString() to fix type error.
-                customerPrice: newPrice.toString(),
-                itemCost: newItemCost > 0 ? newItemCost.toString() : '',
-                employeeCommission: (newCommission * numPeople).toString(),
+                // Fix: Changed `.toString()` to `String()` for safer conversion of numeric values to strings.
+                customerPrice: String(newPrice),
+                itemCost: newItemCost > 0 ? String(newItemCost) : '',
+                employeeCommission: String(newCommission * numPeople),
             }));
         }, [formData.itemId, formData.numberOfPeople, availableItems]);
 
