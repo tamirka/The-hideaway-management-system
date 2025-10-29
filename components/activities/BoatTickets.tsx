@@ -280,14 +280,14 @@ const BoatTickets: React.FC<BoatTicketsProps> = ({ speedBoatTrips, taxiBoatOptio
     
     const groupedSpeedBoatTrips = useMemo(() => {
         // Fix: Explicitly type the accumulator for the reduce function to ensure correct type inference.
-        return speedBoatTrips.reduce((acc: Record<string, SpeedBoatTrip[]>, trip) => {
+        return speedBoatTrips.reduce((acc, trip) => {
             const { route } = trip;
             if (!acc[route]) {
                 acc[route] = [];
             }
             acc[route].push(trip);
             return acc;
-        }, {});
+        }, {} as Record<string, SpeedBoatTrip[]>);
     }, [speedBoatTrips]);
 
     const handleOpenSpeedBoatModalForRoute = (route: string, trips: SpeedBoatTrip[]) => {

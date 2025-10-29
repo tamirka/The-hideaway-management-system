@@ -23,9 +23,7 @@ interface ExternalSaleFormProps {
 }
 const ExternalSaleForm: React.FC<ExternalSaleFormProps> = ({ onSave, onClose, initialData }) => {
     const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
-    // Fix: Safely convert optional number to string for form state to prevent runtime errors and handle 0 correctly.
-    // Fix: Changed `initialData?.amount?.toString() ?? ''` to `String(initialData?.amount ?? '')` to handle null/undefined values safely.
-    const [amount, setAmount] = useState(String(initialData?.amount ?? ''));
+    const [amount, setAmount] = useState(initialData?.amount.toString() || '');
     const [description, setDescription] = useState(initialData?.description || '');
     
     const handleSubmit = (e: React.FormEvent) => {
@@ -69,9 +67,7 @@ const PlatformPaymentForm: React.FC<PlatformPaymentFormProps> = ({ onSave, onClo
     const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
     const [platform, setPlatform] = useState(initialPlatform);
     const [otherPlatform, setOtherPlatform] = useState(initialData?.platform && !PLATFORMS.includes(initialData.platform) ? initialData.platform : '');
-    // Fix: Safely convert optional number to string for form state to prevent runtime errors and handle 0 correctly.
-    // Fix: Changed `initialData?.amount?.toString() ?? ''` to `String(initialData?.amount ?? '')` to handle null/undefined values safely.
-    const [amount, setAmount] = useState(String(initialData?.amount ?? ''));
+    const [amount, setAmount] = useState(initialData?.amount.toString() || '');
     const [bookingReference, setBookingReference] = useState(initialData?.bookingReference || '');
     
     const handleSubmit = (e: React.FormEvent) => {
@@ -131,8 +127,6 @@ interface BookingsReportProps {
   onDeletePlatformPayment: (paymentId: string) => void;
 }
 
-type DateFilterableItem = Booking | ExternalSale | PlatformPayment | WalkInGuest | AccommodationBooking | UtilityRecord | SalaryAdvance | Absence;
-
 const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales, platformPayments, utilityRecords, salaryAdvances, absences, walkInGuests, accommodationBookings, staff, speedBoatTrips, activities, taxiBoatOptions, extras, rooms, paymentTypes, onUpdateBooking, onDeleteBooking, onAddExternalSale, onUpdateExternalSale, onDeleteExternalSale, onAddPlatformPayment, onUpdatePlatformPayment, onDeletePlatformPayment }) => {
     // State
     const [reportGranularity, setReportGranularity] = useState<'monthly' | 'yearly'>('monthly');
@@ -146,7 +140,6 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const [editingPlatformPayment, setEditingPlatformPayment] = useState<PlatformPayment | null>(null);
     const [isEditBookingModalOpen, setIsEditBookingModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
     
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
     const roomMap = useMemo(() => new Map(rooms.map(r => [r.id, r.name])), [rooms]);
@@ -167,22 +160,8 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         onDelete: (booking: Booking) => void;
     }
     const FullEditBookingForm: React.FC<FullEditBookingFormProps> = ({ booking, staff, paymentTypes, activities, speedBoatTrips, taxiBoatOptions, extras, onSave, onClose, onDelete }) => {
-        // Fix: Initialize formData with string values for numeric fields to ensure type consistency in the form state.
-        // Fix: Changed `.toString()` to `String()` for safer conversion of potentially null/undefined numeric values to strings for form state.
-        const [formData, setFormData] = useState<any>({
-            ...booking,
-            // Fix: Changed String() constructor to .toString() to fix type error.
-            customerPrice: String(booking.customerPrice),
-            numberOfPeople: String(booking.numberOfPeople),
-            // Fix: Changed String() constructor to .toString() to fix type error.
-            discount: String(booking.discount ?? ''),
-            extrasTotal: String(booking.extrasTotal ?? ''),
-            fuelCost: String(booking.fuelCost ?? ''),
-            captainCost: String(booking.captainCost ?? ''),
-            itemCost: String(booking.itemCost ?? ''),
-            employeeCommission: String(booking.employeeCommission ?? ''),
-            hostelCommission: String(booking.hostelCommission ?? ''),
-        });
+        // Fix: Use `any` for formData state to allow strings from form inputs for fields that are numbers in the Booking type. This aligns with the conversion logic in handleSave.
+        const [formData, setFormData] = useState<any>(booking);
 
         const availableItems = useMemo(() => {
             switch (booking.itemType) {
@@ -199,6 +178,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             }
         }, [booking.itemType, activities, speedBoatTrips, taxiBoatOptions, extras]);
 
+        // Fix: Changed `field` type from `keyof Booking` to `string` to prevent TypeScript errors when updating state with string values for number fields.
         const handleFormChange = (field: string, value: any) => {
             setFormData(prev => ({ ...prev, [field]: value }));
         };
@@ -210,51 +190,35 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             const numPeople = Number(formData.numberOfPeople) || 1;
             let newPrice = 0;
             let newItemCost = 0;
-            // Fix: Explicitly cast commission to a number to prevent potential type errors in calculation.
-            let newCommission = Number(selectedItem.commission) || 0;
+            let newCommission = selectedItem.commission || 0;
 
             if ('price' in selectedItem) {
-                // Fix: Explicitly cast price to a number before multiplication.
-                newPrice = (Number(selectedItem.price) || 0) * numPeople;
+                newPrice = selectedItem.price * numPeople;
             }
             if ('cost' in selectedItem) {
-                // Fix: Explicitly cast cost to a number before multiplication.
-                newItemCost = (Number((selectedItem as SpeedBoatTrip).cost) || 0) * numPeople;
+                newItemCost = (selectedItem as SpeedBoatTrip).cost * numPeople;
             }
 
             setFormData(prev => ({
                 ...prev,
                 itemName: 'route' in selectedItem ? `${(selectedItem as SpeedBoatTrip).route} (${(selectedItem as SpeedBoatTrip).company})` : selectedItem.name,
-                // Fix: Consistently store numeric form fields as strings to avoid type errors.
-                // Fix: Changed `.toString()` to `String()` for safer conversion of numeric values to strings.
-                customerPrice: String(newPrice),
-                itemCost: newItemCost > 0 ? String(newItemCost) : '',
-                employeeCommission: String(newCommission * numPeople),
+                customerPrice: newPrice,
+                itemCost: newItemCost > 0 ? newItemCost : undefined,
+                employeeCommission: newCommission * numPeople,
             }));
         }, [formData.itemId, formData.numberOfPeople, availableItems]);
 
-        // Fix: Refactored handleSave to robustly convert string form inputs to numbers, preventing type corruption.
         const handleSave = () => {
-            const parseOptionalNumber = (value: any): number | undefined => {
-                if (value === null || value === undefined || String(value).trim() === '') {
-                    return undefined;
+            // Fix: Changed the type of `finalData` from `Booking` to `any` to prevent type errors when spreading `formData`, which contains string values for number fields. The conversion logic below ensures the final object shape is correct before saving.
+            const finalData: any = { ...formData };
+            // Ensure numeric fields are numbers
+            (Object.keys(finalData) as Array<keyof Booking>).forEach(key => {
+                const numericKeys: (keyof Booking)[] = ['customerPrice', 'numberOfPeople', 'discount', 'extrasTotal', 'fuelCost', 'captainCost', 'itemCost', 'employeeCommission', 'hostelCommission'];
+                if (numericKeys.includes(key)) {
+                    const value = finalData[key] as any;
+                    (finalData as any)[key] = value === '' || value === null || isNaN(Number(value)) ? undefined : Number(value);
                 }
-                const num = Number(value);
-                return isNaN(num) ? undefined : num;
-            };
-
-            const finalData: Booking = {
-                ...formData,
-                customerPrice: Number(formData.customerPrice) || 0,
-                numberOfPeople: Number(formData.numberOfPeople) || 1,
-                discount: parseOptionalNumber(formData.discount),
-                extrasTotal: parseOptionalNumber(formData.extrasTotal),
-                fuelCost: parseOptionalNumber(formData.fuelCost),
-                captainCost: parseOptionalNumber(formData.captainCost),
-                itemCost: parseOptionalNumber(formData.itemCost),
-                employeeCommission: parseOptionalNumber(formData.employeeCommission),
-                hostelCommission: parseOptionalNumber(formData.hostelCommission),
-            };
+            });
             onSave(finalData);
             onClose();
         };
@@ -422,24 +386,6 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         } catch { return 'Invalid Date'; }
     }, [reportGranularity, selectedMonth, selectedDay, currentFilter]);
     
-    const filterForTables = <T extends DateFilterableItem>(items: T[]): T[] => {
-        if (!items || items.length === 0) {
-            return [];
-        }
-    
-        const getDate = (item: T): string | undefined => {
-            if ('bookingDate' in item && typeof item.bookingDate === 'string') return item.bookingDate;
-            if ('checkInDate' in item && typeof item.checkInDate === 'string') return item.checkInDate;
-            if ('date' in item && typeof item.date === 'string') return item.date;
-            return undefined;
-        };
-    
-        if (selectedDay) {
-            return items.filter(item => getDate(item) === selectedDay);
-        }
-        return items.filter(item => getDate(item)?.startsWith(currentFilter));
-    };
-
     // Memos for SUMMARY CARDS and FINANCIAL BREAKDOWN (always use month/year)
     const filteredBookingsForSummary = useMemo(() => bookings.filter(b => b.bookingDate.startsWith(currentFilter)), [bookings, currentFilter]);
     const filteredExternalSalesForSummary = useMemo(() => externalSales.filter(s => s.date.startsWith(currentFilter)), [externalSales, currentFilter]);
@@ -449,19 +395,23 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
     const filteredWalkInGuestsForSummary = useMemo(() => walkInGuests.filter(g => g.checkInDate.startsWith(currentFilter)), [walkInGuests, currentFilter]);
     const filteredAccommodationBookingsForSummary = useMemo(() => accommodationBookings.filter(b => b.checkInDate.startsWith(currentFilter)), [accommodationBookings, currentFilter]);
 
+    // Memos for TABLES (use daily filter if available)
+    // Fix: Made filterForTables generic to preserve the type of the array being filtered. This resolves numerous subsequent property access errors.
+    const filterForTables = <T extends { date?: string; bookingDate?: string; checkInDate?: string }>(items: T[]): T[] => {
+        if (!items || items.length === 0) {
+            return [];
+        }
+        const key = 'bookingDate' in items[0] ? 'bookingDate' : ('checkInDate' in items[0] ? 'checkInDate' : 'date');
+        if (selectedDay) {
+            return items.filter(item => (item as any)[key] === selectedDay);
+        }
+        return items.filter(item => (item as any)[key]?.startsWith(currentFilter));
+    };
+
+    const bookingsForTables = useMemo(() => filterForTables(bookings), [bookings, currentFilter, selectedDay]);
     const externalSalesForTables = useMemo(() => filterForTables(externalSales), [externalSales, currentFilter, selectedDay]);
     const platformPaymentsForTables = useMemo(() => filterForTables(platformPayments), [platformPayments, currentFilter, selectedDay]);
-    const allBookingsForTable = useMemo(() => {
-        const filteredByDate = filterForTables(bookings);
-        if (!searchQuery) {
-            return filteredByDate;
-        }
-        const lowercasedQuery = searchQuery.toLowerCase();
-        return filteredByDate.filter(b => 
-            b.itemName.toLowerCase().includes(lowercasedQuery) ||
-            (staffMap.get(b.staffId) || '').toLowerCase().includes(lowercasedQuery)
-        );
-    }, [bookings, currentFilter, selectedDay, searchQuery, staffMap]);
+    const allBookingsForTable = useMemo(() => filterForTables(bookings), [bookings, currentFilter, selectedDay]);
 
 
     const reportData = useMemo(() => {
@@ -525,7 +475,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
         const netProfit = totalRevenue - totalExpenses;
 
         const staffPerformance = staff.map(s => {
-            const staffBookings = filterForTables(bookings).filter(b => b.staffId === s.id);
+            const staffBookings = bookingsForTables.filter(b => b.staffId === s.id);
             return {
                 staffId: s.id, staffName: s.name,
                 bookingsCount: staffBookings.length,
@@ -534,7 +484,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             };
         }).sort((a,b) => b.totalRevenue - a.totalRevenue);
 
-        const companyDebts = filterForTables(bookings)
+        const companyDebts = bookingsForTables
             .filter(b => b.itemType === 'speedboat')
             .reduce((acc: Record<string, number>, booking) => {
                 const trip = speedBoatTrips.find(t => t.id === booking.itemId);
@@ -543,28 +493,28 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
             }, {});
     
         return { totalRevenue, totalAccommodationRevenue, totalWalkInRevenue, totalBookingRevenue, totalPlatformPaymentsRevenue, totalActivityBookingRevenue, totalExtrasRevenue, totalExternalSales, totalExpenses, totalMonthlySalaries: totalCalculatedSalaries, totalUtilitiesCost, totalItemCosts, totalSalaryAdvances, remainingSalaries, totalEmployeeCommissions, expensesWithoutSalary, netProfit, staffPerformance, companyDebts, totalAbsenceDeductions };
-    }, [filteredBookingsForSummary, filteredExternalSalesForSummary, filteredPlatformPaymentsForSummary, filteredUtilityRecordsForSummary, filteredSalaryAdvancesForSummary, filteredWalkInGuestsForSummary, filteredAccommodationBookingsForSummary, staff, speedBoatTrips, reportGranularity, absences, currentFilter, filterForTables, bookings]);
+    }, [filteredBookingsForSummary, filteredExternalSalesForSummary, filteredPlatformPaymentsForSummary, filteredUtilityRecordsForSummary, filteredSalaryAdvancesForSummary, filteredWalkInGuestsForSummary, filteredAccommodationBookingsForSummary, staff, speedBoatTrips, reportGranularity, absences, currentFilter, bookingsForTables]);
     
     // Memos for table totals
     const activityTotals = useMemo(() => {
-        const filtered = allBookingsForTable.filter(b => b.itemType === 'activity');
+        const filtered = bookingsForTables.filter(b => b.itemType === 'activity');
         const data = {
             totalPrice: filtered.reduce((sum, b) => sum + b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0), 0),
             totalCost: filtered.reduce((sum, b) => sum + (b.itemCost || 0), 0),
             totalCommission: filtered.reduce((sum, b) => sum + (b.employeeCommission || 0), 0),
         };
         return { ...data, totalProfit: data.totalPrice - data.totalCost - data.totalCommission };
-    }, [allBookingsForTable]);
+    }, [bookingsForTables]);
 
     const boatTotals = useMemo(() => {
-        const filtered = allBookingsForTable.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat');
+        const filtered = bookingsForTables.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat');
         const data = {
             totalPrice: filtered.reduce((sum, b) => sum + b.customerPrice - (b.discount || 0), 0),
             totalCost: filtered.reduce((sum, b) => sum + (b.itemCost || 0), 0),
             totalCommission: filtered.reduce((sum, b) => sum + (b.employeeCommission || 0), 0),
         };
         return { ...data, totalProfit: data.totalPrice - data.totalCost - data.totalCommission };
-    }, [allBookingsForTable]);
+    }, [bookingsForTables]);
 
     const platformPaymentsTotal = useMemo(() => platformPaymentsForTables.reduce((sum, p) => sum + p.amount, 0), [platformPaymentsForTables]);
     const externalSalesTotal = useMemo(() => externalSalesForTables.reduce((sum, s) => sum + s.amount, 0), [externalSalesForTables]);
@@ -667,7 +617,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </tr>
                     </thead>
                     <tbody>
-                        {allBookingsForTable
+                        {bookingsForTables
                             .filter(b => b.itemType === 'activity')
                             .map(b => {
                                 const totalPrice = b.customerPrice + (b.extrasTotal || 0) - (b.discount || 0);
@@ -689,7 +639,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                                 );
                             })
                         }
-                        {allBookingsForTable.filter(b => b.itemType === 'activity').length === 0 && (
+                        {bookingsForTables.filter(b => b.itemType === 'activity').length === 0 && (
                             <tr>
                                 <td colSpan={8} className="text-center p-4 text-slate-500">
                                     No activity bookings for this period.
@@ -736,7 +686,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                         </tr>
                     </thead>
                     <tbody>
-                        {allBookingsForTable
+                        {bookingsForTables
                             .filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat')
                             .map(b => {
                                 const totalPrice = b.customerPrice - (b.discount || 0);
@@ -758,7 +708,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                                 );
                             })
                         }
-                        {allBookingsForTable.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat').length === 0 && (
+                        {bookingsForTables.filter(b => b.itemType === 'speedboat' || b.itemType === 'taxi_boat').length === 0 && (
                             <tr>
                                 <td colSpan={8} className="text-center p-4 text-slate-500">
                                     No boat ticket bookings for this period.
@@ -830,19 +780,7 @@ const BookingsReport: React.FC<BookingsReportProps> = ({ bookings, externalSales
                 </table>
             </div>
 
-            <div className="bg-white rounded-lg shadow-md overflow-x-auto">
-                <div className="p-4 border-b">
-                     <h3 className="text-lg font-semibold">All Bookings - {reportPeriodTitle}</h3>
-                     <div className="mt-2">
-                        <input
-                            type="text"
-                            placeholder="Search by item or staff name..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full md:w-1/2 lg:w-1/3 px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        />
-                    </div>
-                </div>
+            <div className="bg-white rounded-lg shadow-md overflow-x-auto"><h3 className="text-lg font-semibold p-4 border-b">All Bookings - {reportPeriodTitle}</h3>
                 <table className="w-full text-sm">
                      <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">ID</th><th className="px-6 py-3">Date</th><th className="px-6 py-3">Item</th><th className="px-6 py-3">Staff</th><th className="px-6 py-3">Price</th><th className="px-6 py-3">Hostel C.</th><th className="px-6 py-3">Employee C.</th><th className="px-6 py-3">Receipt</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
                      <tbody>
