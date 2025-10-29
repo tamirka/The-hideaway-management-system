@@ -258,7 +258,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, guestData,
     const [amountToPay, setAmountToPay] = useState('');
 
     // Fix: Explicitly cast guestData to the correct type based on the 'type' property to resolve property access errors.
-    const totalCost = guestData ? (guestData.type === 'walk-in' ? (guestData as WalkInGuest).pricePerNight * (guestData as WalkInGuest).numberOfNights : (guestData as AccommodationBooking).totalPrice) : 0;
+    const totalCost = guestData ? (guestData.type === 'walk-in' ? (guestData as WalkInGuest).pricePerNight * guestData.numberOfNights : (guestData as AccommodationBooking).totalPrice) : 0;
     const remainingBalance = guestData ? totalCost - guestData.amountPaid : 0;
 
     useEffect(() => {

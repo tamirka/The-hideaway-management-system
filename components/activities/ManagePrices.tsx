@@ -139,18 +139,14 @@ interface EditablePriceItemProps<T extends { id: string; name: string; price: nu
   currencySymbol?: string;
 }
 
-// Fix: Changed component to an arrow function expression. This is a more common pattern for generic components
-// in TypeScript and helps the compiler correctly identify it as a React component, thus handling the `key` prop correctly.
-// Fix: Changed component to a standard function declaration to ensure it's correctly identified as a React component by TypeScript, resolving issues with the `key` prop on generic components.
-function EditablePriceItem<T extends { id: string; name: string; price: number }> (
-  props: EditablePriceItemProps<T>
-): React.ReactElement {
-  const {
-    item,
-    onSave,
-    onDelete,
-    currencySymbol = 'THB',
-  } = props;
+// Fix: Changed component to a generic arrow function expression. This is a more common pattern for generic components
+// in TypeScript and helps the compiler correctly identify it as a React component, resolving issues with the `key` prop.
+const EditablePriceItem = <T extends { id: string; name: string; price: number; }>({
+  item,
+  onSave,
+  onDelete,
+  currencySymbol = 'THB',
+}: EditablePriceItemProps<T>): React.ReactElement => {
   const [price, setPrice] = useState(item.price.toString());
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);

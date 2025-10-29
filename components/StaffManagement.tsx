@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import type { Staff, Shift, Task, Absence, SalaryAdvance, Booking } from '../types';
-// Fix: Import Role enum to be used in the StaffForm.
 import { TaskStatus, Role } from '../types';
 import Modal from './Modal';
 import Badge from './Badge';
@@ -16,15 +15,12 @@ interface StaffFormProps {
 const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData }) => {
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    // Fix: Set a default role from the Role enum and ensure it's a string for the select input.
     role: initialData?.role || Role.Staff,
-    // Fix: Convert salary to a string for the input field to maintain a consistent type.
     salary: initialData?.salary?.toString() || '',
     contact: initialData?.contact || '',
     employeeId: initialData?.employeeId || '',
   });
 
-  // Fix: Update handleChange to handle both input and select elements.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
@@ -32,7 +28,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Fix: Cast the role back to the Role enum type and convert salary to a number before submission.
     const staffData = {
         ...formData,
         role: formData.role as Role,
@@ -53,7 +48,6 @@ const StaffForm: React.FC<StaffFormProps> = ({ onSubmit, onClose, initialData })
                 <label htmlFor="name" className="block text-sm font-medium text-slate-700">Full Name</label>
                 <input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
-            {/* Fix: Replace text input with a select dropdown for Role to ensure valid data. */}
             <div>
                 <label htmlFor="role" className="block text-sm font-medium text-slate-700">Role</label>
                 <select id="role" value={formData.role} onChange={handleChange} required className="mt-1 block w-full input-field">
@@ -134,6 +128,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onClose, staffList, initi
                     <input type="date" id="dueDate" value={formData.dueDate} onChange={handleChange} required className="mt-1 block w-full input-field" />
                 </div>
             </div>
+             <div>
+                <label htmlFor="status" className="block text-sm font-medium text-slate-700">Status</label>
+                <select id="status" value={formData.status} onChange={handleChange} required className="mt-1 block w-full input-field">
+                    {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+            </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Update Task' : 'Add Task'}</button>
@@ -202,8 +202,9 @@ const AbsenceForm: React.FC<AbsenceFormProps> = ({ onSubmit, onClose, staffList,
             </div>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </form>
-    )
-}
+    );
+};
+
 
 // --- Salary Advance Form ---
 interface SalaryAdvanceFormProps {
@@ -217,7 +218,7 @@ const SalaryAdvanceForm: React.FC<SalaryAdvanceFormProps> = ({ onSubmit, onClose
     const [formData, setFormData] = useState({
         staffId: initialData?.staffId || '',
         date: initialData?.date || '',
-        amount: initialData?.amount || '',
+        amount: initialData?.amount?.toString() || '',
         reason: initialData?.reason || '',
     });
 
@@ -234,7 +235,7 @@ const SalaryAdvanceForm: React.FC<SalaryAdvanceFormProps> = ({ onSubmit, onClose
         }
         const advanceData = {
             ...formData,
-            amount: Number(formData.amount),
+            amount: Number(formData.amount) || 0
         };
         if (initialData) {
             onSubmit({...initialData, ...advanceData});
@@ -243,11 +244,11 @@ const SalaryAdvanceForm: React.FC<SalaryAdvanceFormProps> = ({ onSubmit, onClose
         }
         onClose();
     };
-
+    
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 <div>
+                <div>
                     <label htmlFor="staffId" className="block text-sm font-medium text-slate-700">Employee</label>
                     <select id="staffId" value={formData.staffId} onChange={handleChange} required className="mt-1 block w-full input-field">
                         <option value="">Select Employee</option>
@@ -261,25 +262,22 @@ const SalaryAdvanceForm: React.FC<SalaryAdvanceFormProps> = ({ onSubmit, onClose
             </div>
              <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-slate-700">Amount (THB)</label>
-                <input type="number" step="0.01" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full input-field" />
+                <input type="number" id="amount" value={formData.amount} onChange={handleChange} required className="mt-1 block w-full input-field" />
             </div>
             <div>
                 <label htmlFor="reason" className="block text-sm font-medium text-slate-700">Reason (Optional)</label>
-                <textarea id="reason" value={formData.reason} onChange={handleChange} rows={3} className="mt-1 block w-full input-field" />
+                <textarea id="reason" value={formData.reason} onChange={handleChange} rows={2} className="mt-1 block w-full input-field" />
             </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Update Advance' : 'Record Advance'}</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">{initialData ? 'Update Advance' : 'Give Advance'}</button>
             </div>
             <style>{`.input-field{padding:0.5rem 0.75rem;background-color:white;border:1px solid #cbd5e1;border-radius:0.375rem;box-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);outline:none;color:#1e293b;}.input-field:focus{ring:1px solid #3b82f6;border-color:#3b82f6;}`}</style>
         </form>
-    )
+    );
 }
 
-
-
-type StaffSubView = 'employees' | 'shifts' | 'tasks' | 'absences' | 'advances';
-
+// --- Staff Management Component ---
 interface StaffManagementProps {
   staff: Staff[];
   shifts: Shift[];
@@ -301,493 +299,68 @@ interface StaffManagementProps {
   onDeleteSalaryAdvance: (advanceId: string) => void;
 }
 
-export const StaffManagement: React.FC<StaffManagementProps> = (props) => {
-    const { staff, shifts, tasks, absences, salaryAdvances, bookings, onAddStaff, onUpdateStaff, onDeleteStaff, onAddTask, onUpdateTask, onDeleteTask, onAddAbsence, onUpdateAbsence, onDeleteAbsence, onAddSalaryAdvance, onUpdateSalaryAdvance, onDeleteSalaryAdvance } = props;
-    const [activeTab, setActiveTab] = useState<StaffSubView>('employees');
-    
-    // State for modals
-    const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+export const StaffManagement: React.FC<StaffManagementProps> = ({ staff, tasks, absences, salaryAdvances, bookings, onAddStaff, onUpdateStaff, onDeleteStaff, onAddTask, onUpdateTask, onDeleteTask, onAddAbsence, onUpdateAbsence, onDeleteAbsence, onAddSalaryAdvance, onUpdateSalaryAdvance, onDeleteSalaryAdvance }) => {
+    const [modal, setModal] = useState<'staff' | 'task' | 'absence' | 'advance' | null>(null);
     const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
     const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null);
-    const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
     const [editingAdvance, setEditingAdvance] = useState<SalaryAdvance | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
 
     const staffMap = useMemo(() => new Map(staff.map(s => [s.id, s.name])), [staff]);
-    
-    const monthlyAdvancesByStaff = useMemo(() => {
-        const advancesMap = new Map<string, number>();
-        const monthlyAdvances = salaryAdvances.filter(a => a.date.startsWith(selectedMonth));
-        monthlyAdvances.forEach(advance => {
-            advancesMap.set(advance.staffId, (advancesMap.get(advance.staffId) || 0) + advance.amount);
-        });
-        return advancesMap;
-    }, [salaryAdvances, selectedMonth]);
 
-    const monthlyCommissionsByStaff = useMemo(() => {
-        const commissionsMap = new Map<string, number>();
-        const monthlyBookings = bookings.filter(b => b.bookingDate.startsWith(selectedMonth));
-        monthlyBookings.forEach(booking => {
-            if (booking.employeeCommission) {
-                commissionsMap.set(booking.staffId, (commissionsMap.get(booking.staffId) || 0) + booking.employeeCommission);
-            }
-        });
-        return commissionsMap;
-    }, [bookings, selectedMonth]);
-
-    const monthlyAbsenceDeductionsByStaff = useMemo(() => {
-        const deductionsMap = new Map<string, number>();
-        if (!selectedMonth) return deductionsMap;
-
-        const [year, month] = selectedMonth.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        if (daysInMonth === 0) return deductionsMap;
-
-        const monthlyAbsences = absences.filter(a => a.date.startsWith(selectedMonth));
-        
-        staff.forEach(s => {
-            const monthlySalary = s.salary;
-            const dailyDeductionRate = monthlySalary / daysInMonth;
-            const staffAbsenceCount = monthlyAbsences.filter(a => a.staffId === s.id).length;
-            const totalDeduction = staffAbsenceCount * dailyDeductionRate;
-            deductionsMap.set(s.id, totalDeduction);
-        });
-
-        return deductionsMap;
-    }, [staff, absences, selectedMonth]);
-
-    const groupedShifts = useMemo(() => {
-        return shifts.reduce((acc, shift) => {
-            (acc[shift.date] = acc[shift.date] || []).push(shift);
-            return acc;
-        }, {} as Record<string, Shift[]>);
-    }, [shifts]);
-
-    const filteredAbsences = useMemo(() => {
-        if (!selectedMonth) return absences;
-        return absences.filter(a => a.date.startsWith(selectedMonth));
-    }, [absences, selectedMonth]);
-
-    const absenceSummary = useMemo(() => {
-        const summary = staff.map(s => {
-            const count = filteredAbsences.filter(a => a.staffId === s.id).length;
-            return {
-                staffId: s.id,
-                staffName: s.name,
-                absenceCount: count,
-            };
-        });
-        return summary.filter(s => s.absenceCount > 0).sort((a, b) => b.absenceCount - a.absenceCount);
-    }, [staff, filteredAbsences]);
-
-
-    // Handlers for Staff Modal
-    const handleOpenStaffModal = (staffMember?: Staff) => {
-        setEditingStaff(staffMember || null);
-        setIsStaffModalOpen(true);
+    const handleOpenModal = (type: 'staff' | 'task' | 'absence' | 'advance', data?: any) => {
+        if (type === 'staff') setEditingStaff(data || null);
+        if (type === 'task') setEditingTask(data || null);
+        if (type === 'absence') setEditingAbsence(data || null);
+        if (type === 'advance') setEditingAdvance(data || null);
+        setModal(type);
     };
-    const handleCloseStaffModal = () => setIsStaffModalOpen(false);
-    const handleStaffSubmit = (staffData: Omit<Staff, 'id'> | Staff) => {
-        if ('id' in staffData) onUpdateStaff(staffData); else onAddStaff(staffData);
+
+    const handleCloseModal = () => {
+        setModal(null);
+        setEditingStaff(null);
+        setEditingTask(null);
+        setEditingAbsence(null);
+        setEditingAdvance(null);
     };
     
-    // Handlers for Task Modal
-    const handleOpenTaskModal = (task?: Task) => {
-        setEditingTask(task || null);
-        setIsTaskModalOpen(true);
-    };
-    const handleCloseTaskModal = () => setIsTaskModalOpen(false);
-    const handleTaskSubmit = (taskData: Omit<Task, 'id'> | Task) => {
-        if ('id' in taskData) onUpdateTask(taskData); else onAddTask(taskData);
-    };
-    const handleTaskStatusChange = (task: Task, newStatus: TaskStatus) => {
-        onUpdateTask({ ...task, status: newStatus });
-    }
+    return (
+        <div className="space-y-8">
+            {/* Staff List */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                 <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-slate-800">Employee Management</h2><button onClick={() => handleOpenModal('staff')} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md"><PlusIcon className="w-5 h-5 mr-2" />Add Employee</button></div>
+                 <div className="overflow-x-auto"><table className="w-full text-sm">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Name</th><th className="px-6 py-3">Role</th><th className="px-6 py-3">Salary</th><th className="px-6 py-3">Contact</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
+                    <tbody>{staff.map(s => <tr key={s.id} className="border-b"><td className="px-6 py-4 font-medium">{s.name}</td><td className="px-6 py-4">{s.role}</td><td className="px-6 py-4">{s.salary.toLocaleString()} THB</td><td className="px-6 py-4">{s.contact}</td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenModal('staff', s)}><EditIcon/></button><button onClick={() => onDeleteStaff(s.id)}><TrashIcon/></button></div></td></tr>)}</tbody>
+                 </table></div>
+            </div>
 
-    // Handlers for Absence Modal
-    const handleOpenAbsenceModal = (absence?: Absence) => {
-        setEditingAbsence(absence || null);
-        setIsAbsenceModalOpen(true);
-    };
-    const handleCloseAbsenceModal = () => setIsAbsenceModalOpen(false);
-    const handleAbsenceSubmit = (absenceData: Omit<Absence, 'id'> | Absence) => {
-        if ('id' in absenceData) onUpdateAbsence(absenceData); else onAddAbsence(absenceData);
-    };
+            {/* Task Management */}
+             <div className="bg-white p-6 rounded-lg shadow-md">
+                 <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-slate-800">Task Management</h2><button onClick={() => handleOpenModal('task')} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md"><PlusIcon className="w-5 h-5 mr-2" />Add Task</button></div>
+                 <div className="overflow-x-auto"><table className="w-full text-sm">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50"><tr><th className="px-6 py-3">Description</th><th className="px-6 py-3">Assigned To</th><th className="px-6 py-3">Due Date</th><th className="px-6 py-3">Status</th><th className="px-6 py-3 text-right">Actions</th></tr></thead>
+                    <tbody>{tasks.map(t => <tr key={t.id} className="border-b"><td className="px-6 py-4">{t.description}</td><td className="px-6 py-4">{staffMap.get(t.assignedTo) || 'N/A'}</td><td className="px-6 py-4">{t.dueDate}</td><td className="px-6 py-4"><Badge status={t.status}/></td><td className="px-6 py-4 text-right"><div className="flex justify-end space-x-3"><button onClick={() => handleOpenModal('task', t)}><EditIcon/></button><button onClick={() => onDeleteTask(t.id)}><TrashIcon/></button></div></td></tr>)}</tbody>
+                 </table></div>
+            </div>
 
-    // Handlers for Salary Advance Modal
-    const handleOpenAdvanceModal = (advance?: SalaryAdvance) => {
-        setEditingAdvance(advance || null);
-        setIsAdvanceModalOpen(true);
-    };
-    const handleCloseAdvanceModal = () => setIsAdvanceModalOpen(false);
-    const handleAdvanceSubmit = (advanceData: Omit<SalaryAdvance, 'id'> | SalaryAdvance) => {
-        if ('id' in advanceData) onUpdateSalaryAdvance(advanceData); else onAddSalaryAdvance(advanceData);
-    };
-
-
-    const TABS: { id: StaffSubView; label: string }[] = [
-        { id: 'employees', label: 'Employees' },
-        { id: 'shifts', label: 'Shift Schedule' },
-        { id: 'tasks', label: 'Task Board' },
-        { id: 'absences', label: 'Absence Tracking' },
-        { id: 'advances', label: 'Salary Advances' },
-    ];
-
-  return (
-    <div>
-        <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Staff & HR</h1>
-        </div>
-        
-        <div className="border-b border-slate-200">
-             <nav className="flex space-x-2 sm:space-x-6 overflow-x-auto -mb-px" aria-label="Tabs">
-                {TABS.map(tab => (
-                    <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                        className={`${
-                            activeTab === tab.id
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </nav>
-        </div>
-
-        <div className="mt-6">
-            {activeTab === 'employees' && (
-                <div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between mb-6">
-                         <div>
-                            <label htmlFor="month-filter-employees" className="text-sm font-medium text-slate-600">View salary details for month:</label>
-                            <input 
-                                type="month" 
-                                id="month-filter-employees"
-                                value={selectedMonth}
-                                onChange={e => setSelectedMonth(e.target.value)}
-                                className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
-                            />
-                        </div>
-                        <button onClick={() => handleOpenStaffModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
-                           <PlusIcon className="w-5 h-5 mr-2" /> Add Employee
-                        </button>
-                    </div>
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden space-y-4">
-                        {staff.map(s => {
-                            const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
-                            const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                            const totalCommissions = monthlyCommissionsByStaff.get(s.id) || 0;
-                            const netMonthlySalary = s.salary + totalCommissions - totalAdvances - totalDeductions;
-                            return (
-                                <div key={s.id} className="bg-white rounded-lg shadow-md p-4 space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-slate-800">{s.name}</h3>
-                                            <p className="text-sm text-slate-600">{s.role}</p>
-                                        </div>
-                                        <div className="flex space-x-3">
-                                            <button onClick={() => handleOpenStaffModal(s)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                            <button onClick={() => onDeleteStaff(s.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                        </div>
-                                    </div>
-                                    <div className="text-sm text-slate-600 border-t pt-3 space-y-1">
-                                         <p><span className="font-semibold">ID:</span> {s.employeeId}</p>
-                                         <p><span className="font-semibold">Contact:</span> {s.contact}</p>
-                                         <p><span className="font-semibold">Salary (Monthly):</span> ฿{s.salary.toLocaleString()}</p>
-                                         <p><span className="font-semibold text-sky-600">Monthly Commissions:</span> ฿{totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                         <p><span className="font-semibold text-red-600">Monthly Advances:</span> ฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                         <p><span className="font-semibold text-orange-600">Absence Deductions:</span> ฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                         <p className="font-bold text-green-600 pt-1 border-t mt-1"><span className="font-semibold">Net Monthly Salary:</span> ฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                <tr>
-                                    <th className="px-6 py-3">Name</th>
-                                    <th className="px-6 py-3">Role</th>
-                                    <th className="px-6 py-3">Employee ID</th>
-                                    <th className="px-6 py-3">Salary (Monthly)</th>
-                                    <th className="px-6 py-3">Monthly Commissions</th>
-                                    <th className="px-6 py-3">Monthly Advances</th>
-                                    <th className="px-6 py-3">Absence Deductions</th>
-                                    <th className="px-6 py-3">Net Monthly Salary</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {staff.map(s => {
-                                    const totalAdvances = monthlyAdvancesByStaff.get(s.id) || 0;
-                                    const totalDeductions = monthlyAbsenceDeductionsByStaff.get(s.id) || 0;
-                                    const totalCommissions = monthlyCommissionsByStaff.get(s.id) || 0;
-                                    const netMonthlySalary = s.salary + totalCommissions - totalAdvances - totalDeductions;
-                                    return (
-                                        <tr key={s.id} className="bg-white border-b hover:bg-slate-50">
-                                            <td className="px-6 py-4 font-medium text-slate-900">{s.name}</td>
-                                            <td className="px-6 py-4">{s.role}</td>
-                                            <td className="px-6 py-4">{s.employeeId}</td>
-                                            <td className="px-6 py-4">฿{s.salary.toLocaleString()}</td>
-                                            <td className="px-6 py-4 text-sky-600 font-medium">฿{totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-red-600 font-medium">฿{totalAdvances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-orange-600 font-medium">฿{totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-green-600 font-bold">฿{netMonthlySalary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end space-x-3">
-                                                    <button onClick={() => handleOpenStaffModal(s)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                                    <button onClick={() => onDeleteStaff(s.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+            {/* Absence and Salary Advances */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-slate-800">Absence Log</h2><button onClick={() => handleOpenModal('absence')} className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md"><PlusIcon className="w-4 h-4 mr-1" />Log Absence</button></div>
+                    <div className="overflow-y-auto max-h-60"><ul>{absences.map(a => <li key={a.id} className="flex justify-between items-center p-2 border-b"><div className="text-sm"><strong>{staffMap.get(a.staffId)}</strong> on {a.date}</div><div className="flex space-x-2"><button onClick={() => handleOpenModal('absence', a)}><EditIcon className="w-4 h-4"/></button><button onClick={() => onDeleteAbsence(a.id)}><TrashIcon className="w-4 h-4"/></button></div></li>)}</ul></div>
                 </div>
-            )}
+                 <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex justify-between items-center mb-4"><h2 className="text-xl font-bold text-slate-800">Salary Advances</h2><button onClick={() => handleOpenModal('advance')} className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md"><PlusIcon className="w-4 h-4 mr-1" />Give Advance</button></div>
+                    <div className="overflow-y-auto max-h-60"><ul>{salaryAdvances.map(a => <li key={a.id} className="flex justify-between items-center p-2 border-b"><div className="text-sm"><strong>{staffMap.get(a.staffId)}</strong>: {a.amount.toLocaleString()} THB on {a.date}</div><div className="flex space-x-2"><button onClick={() => handleOpenModal('advance', a)}><EditIcon className="w-4 h-4"/></button><button onClick={() => onDeleteSalaryAdvance(a.id)}><TrashIcon className="w-4 h-4"/></button></div></li>)}</ul></div>
+                </div>
+            </div>
             
-            {activeTab === 'shifts' && (
-                 <div className="space-y-6">
-                    {Object.keys(groupedShifts).sort().map(date => (
-                        <div key={date} className="bg-white p-4 rounded-lg shadow-md">
-                            <h3 className="text-lg font-semibold text-slate-800 mb-3 border-b pb-2">
-                                {new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                            </h3>
-                            <div className="space-y-2">
-                                {groupedShifts[date].map(shift => (
-                                    <div key={shift.id} className="flex items-center justify-between p-2 rounded-md hover:bg-slate-50">
-                                        <span className="font-medium text-slate-700">{shift.staffName}</span>
-                                        <span className="text-sm text-slate-500">{shift.startTime} - {shift.endTime}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {activeTab === 'tasks' && (
-                <div>
-                     <div className="flex justify-end mb-4">
-                        <button onClick={() => handleOpenTaskModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
-                           <PlusIcon className="w-5 h-5 mr-2" /> Add Task
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {Object.values(TaskStatus).map(status => (
-                            <div key={status} className="bg-slate-50 rounded-lg p-4">
-                                <h3 className="font-semibold text-slate-700 mb-4">{status}</h3>
-                                <div className="space-y-4">
-                                    {tasks.filter(t => t.status === status).map(task => (
-                                        <div key={task.id} className="bg-white p-4 rounded-md shadow-sm border">
-                                            <p className="font-medium text-slate-800">{task.description}</p>
-                                            <div className="text-sm text-slate-500 mt-2">
-                                                <p>To: {staffMap.get(task.assignedTo) || 'Unassigned'}</p>
-                                                <p>Due: {task.dueDate}</p>
-                                            </div>
-                                            <div className="flex items-center justify-between mt-3">
-                                                 <select value={task.status} onChange={(e) => handleTaskStatusChange(task, e.target.value as TaskStatus)} className="text-xs border-slate-200 rounded">
-                                                     {Object.values(TaskStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                                                 </select>
-                                                <div className="flex space-x-2">
-                                                   <button onClick={() => handleOpenTaskModal(task)} className="text-slate-400 hover:text-blue-600"><EditIcon className="w-4 h-4" /></button>
-                                                   <button onClick={() => onDeleteTask(task.id)} className="text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'absences' && (
-                <div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between mb-6">
-                        <div>
-                            <label htmlFor="month-filter-absences" className="text-sm font-medium text-slate-600">Filter by Month:</label>
-                            <input 
-                                type="month" 
-                                id="month-filter-absences"
-                                value={selectedMonth}
-                                onChange={e => setSelectedMonth(e.target.value)}
-                                className="ml-2 rounded-md border-slate-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-1"
-                            />
-                        </div>
-                        <button onClick={() => handleOpenAbsenceModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
-                           <PlusIcon className="w-5 h-5 mr-2" /> Record Absence
-                        </button>
-                    </div>
-
-                    {absenceSummary.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-md overflow-x-auto mb-6">
-                             <h3 className="text-lg font-semibold text-slate-800 p-4 border-b">Monthly Absence Summary - {new Date(selectedMonth+'-02').toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                            <table className="w-full text-sm text-left text-slate-500">
-                                <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                    <tr>
-                                        <th className="px-6 py-3">Employee</th>
-                                        <th className="px-6 py-3">Total Absences This Month</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {absenceSummary.map(summary => (
-                                        <tr key={summary.staffId} className="bg-white border-b hover:bg-slate-50">
-                                            <td className="px-6 py-4 font-medium text-slate-900">{summary.staffName}</td>
-                                            <td className="px-6 py-4">{summary.absenceCount}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden space-y-4">
-                        {filteredAbsences.map(a => (
-                            <div key={a.id} className="bg-white rounded-lg shadow-md p-4 space-y-2">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="font-bold text-slate-800">{staffMap.get(a.staffId) || 'Unknown Staff'}</h3>
-                                        <p className="text-sm text-slate-600">{a.date}</p>
-                                    </div>
-                                    <div className="flex space-x-3">
-                                        <button onClick={() => handleOpenAbsenceModal(a)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                        <button onClick={() => onDeleteAbsence(a.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                    </div>
-                                </div>
-                                {a.reason && (
-                                <div className="text-sm text-slate-600 border-t pt-2">
-                                     <p><span className="font-semibold">Reason:</span> {a.reason}</p>
-                                </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                <tr>
-                                    <th className="px-6 py-3">Employee</th>
-                                    <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Reason</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredAbsences.map(a => (
-                                    <tr key={a.id} className="bg-white border-b hover:bg-slate-50">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{staffMap.get(a.staffId) || 'Unknown Staff'}</td>
-                                        <td className="px-6 py-4">{a.date}</td>
-                                        <td className="px-6 py-4">{a.reason || 'N/A'}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end space-x-3">
-                                                <button onClick={() => handleOpenAbsenceModal(a)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                                <button onClick={() => onDeleteAbsence(a.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'advances' && (
-                <div>
-                    <div className="flex justify-end mb-4">
-                        <button onClick={() => handleOpenAdvanceModal()} className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700">
-                           <PlusIcon className="w-5 h-5 mr-2" /> Record Advance
-                        </button>
-                    </div>
-
-                    {/* Mobile Card View */}
-                    <div className="md:hidden space-y-4">
-                        {salaryAdvances.map(a => (
-                            <div key={a.id} className="bg-white rounded-lg shadow-md p-4 space-y-2">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="font-bold text-slate-800">{staffMap.get(a.staffId) || 'Unknown Staff'}</h3>
-                                        <p className="text-sm text-slate-600">{a.date}</p>
-                                    </div>
-                                    <div className="flex space-x-3">
-                                        <button onClick={() => handleOpenAdvanceModal(a)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                        <button onClick={() => onDeleteSalaryAdvance(a.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                    </div>
-                                </div>
-                                <div className="text-sm text-slate-600 border-t pt-2">
-                                    <p><span className="font-semibold">Amount:</span> ฿{a.amount.toFixed(2)}</p>
-                                    {a.reason && <p><span className="font-semibold">Reason:</span> {a.reason}</p>}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-500">
-                            <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                                <tr>
-                                    <th className="px-6 py-3">Employee</th>
-                                    <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Amount</th>
-                                    <th className="px-6 py-3">Reason</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {salaryAdvances.map(a => (
-                                    <tr key={a.id} className="bg-white border-b hover:bg-slate-50">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{staffMap.get(a.staffId) || 'Unknown Staff'}</td>
-                                        <td className="px-6 py-4">{a.date}</td>
-                                        <td className="px-6 py-4">฿{a.amount.toFixed(2)}</td>
-                                        <td className="px-6 py-4">{a.reason || 'N/A'}</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end space-x-3">
-                                                <button onClick={() => handleOpenAdvanceModal(a)} className="text-slate-500 hover:text-blue-600"><EditIcon /></button>
-                                                <button onClick={() => onDeleteSalaryAdvance(a.id)} className="text-slate-500 hover:text-red-600"><TrashIcon /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+            {/* Modals */}
+            <Modal isOpen={modal === 'staff'} onClose={handleCloseModal} title={editingStaff ? 'Edit Employee' : 'Add Employee'}><StaffForm onSubmit={editingStaff ? onUpdateStaff : onAddStaff} onClose={handleCloseModal} initialData={editingStaff} /></Modal>
+            <Modal isOpen={modal === 'task'} onClose={handleCloseModal} title={editingTask ? 'Edit Task' : 'Add Task'}><TaskForm onSubmit={editingTask ? onUpdateTask : onAddTask} onClose={handleCloseModal} staffList={staff} initialData={editingTask} /></Modal>
+            <Modal isOpen={modal === 'absence'} onClose={handleCloseModal} title={editingAbsence ? 'Edit Absence' : 'Log Absence'}><AbsenceForm onSubmit={editingAbsence ? onUpdateAbsence : onAddAbsence} onClose={handleCloseModal} staffList={staff} initialData={editingAbsence} /></Modal>
+            <Modal isOpen={modal === 'advance'} onClose={handleCloseModal} title={editingAdvance ? 'Edit Salary Advance' : 'Give Salary Advance'}><SalaryAdvanceForm onSubmit={editingAdvance ? onUpdateSalaryAdvance : onAddSalaryAdvance} onClose={handleCloseModal} staffList={staff} initialData={editingAdvance} /></Modal>
         </div>
-        
-        <Modal isOpen={isStaffModalOpen} onClose={handleCloseStaffModal} title={editingStaff ? 'Edit Employee' : 'Add New Employee'}>
-            <StaffForm onSubmit={handleStaffSubmit} onClose={handleCloseStaffModal} initialData={editingStaff}/>
-        </Modal>
-
-        <Modal isOpen={isTaskModalOpen} onClose={handleCloseTaskModal} title={editingTask ? 'Edit Task' : 'Add New Task'}>
-            <TaskForm onSubmit={handleTaskSubmit} onClose={handleCloseTaskModal} initialData={editingTask} staffList={staff} />
-        </Modal>
-
-        <Modal isOpen={isAbsenceModalOpen} onClose={handleCloseAbsenceModal} title={editingAbsence ? 'Edit Absence Record' : 'Record New Absence'}>
-            <AbsenceForm onSubmit={handleAbsenceSubmit} onClose={handleCloseAbsenceModal} initialData={editingAbsence} staffList={staff} />
-        </Modal>
-
-        <Modal isOpen={isAdvanceModalOpen} onClose={handleCloseAdvanceModal} title={editingAdvance ? 'Edit Salary Advance' : 'Record New Salary Advance'}>
-            <SalaryAdvanceForm onSubmit={handleAdvanceSubmit} onClose={handleCloseAdvanceModal} initialData={editingAdvance} staffList={staff} />
-        </Modal>
-    </div>
-  );
+    );
 };

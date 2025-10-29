@@ -29,6 +29,12 @@ export enum PaymentStatus {
   Unpaid = 'Unpaid',
 }
 
+export interface Profile {
+  id: string; // Should match auth.users.id
+  role: Role;
+  fullName?: string;
+}
+
 export interface PaymentType {
   id: string;
   name: string;
